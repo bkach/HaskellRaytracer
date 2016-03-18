@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+# exit when script tries to use an undeclared variable
+set -o nounset
+
+die() {
+    echo "$*"
+    exit 1
+}
+
+
+main () {
+
+    cd `dirname $0`/..
+
+    cabal sandbox init
+    cabal update
+    cabal install --enable-tests --only-dependencies -j
+    cabal configure --enable-tests
+    cabal build -j
+
+}
+
+main "$@"
+
