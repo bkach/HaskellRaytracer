@@ -1,6 +1,6 @@
 module Vector where
 
-data Vector = Vector Double Double Double deriving(Show)
+data Vector = Vector Double Double Double deriving(Show, Eq)
 
 -- Helper Functions
 --
@@ -10,8 +10,8 @@ add :: Vector -> Vector -> Vector
 sub :: Vector -> Vector -> Vector
 (Vector x y z) `sub` (Vector x1 y1 z1) = Vector (x - x1) (y - y1) (z - z1)
 
-scalarMult :: Vector -> Double -> Vector
-(Vector x y z) `scalarMult` s = Vector (x * s) (y * s) (z * s)
+scalarMult :: Double -> Vector -> Vector
+s `scalarMult` (Vector x y z) = Vector (x * s) (y * s) (z * s)
 
 dotProduct :: Vector -> Vector -> Double
 (Vector x y z) `dotProduct` (Vector x1 y1 z1) = x * x1 + y * y1 + z * z1
@@ -27,5 +27,5 @@ magnitude :: Vector -> Double
 magnitude (Vector x y z) = sqrt (x * x + y * y + z * z)
 
 neg :: Vector -> Vector
-neg (Vector x y z) = Vector (-x) (-y) (-z)
+neg = scalarMult (-1)
 

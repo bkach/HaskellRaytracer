@@ -19,10 +19,10 @@ main :: IO()
 main = print $ Circle (normalize $ Vector 1 2 3 `cross` Vector 4 5 6) 3
 
 -- Basic Data Types
-data Shape = Circle { position :: Vector, radius :: Double}
-           | Plane { position :: Vector, normal :: Vector }
+data Shape = Circle Vector Double
+           | Plane Vector Vector
            | Triangle Vector Vector Vector
-            deriving (Show)
+            deriving (Show, Eq)
 
 -- Finds a,b, and c for a^2*x + b*x + c*x = 0, useful for finding intersections
 roots :: Double -> Double -> Double -> [Double]
