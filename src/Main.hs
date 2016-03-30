@@ -81,12 +81,18 @@ minWithEmpty :: [Double] -> Double
 minWithEmpty [] = -1
 minWithEmpty list = minimum list
 
-trace x y 
-    | isNothing intersection = white
-    | otherwise = getColorFromIntersection intersection
-    where intersection = closestIntersection (generateRay camera sceneWidth sceneHeight x y) objects
+trace :: Int -> Int -> PixelRGB8
+trace x y =
+    let
+      ray =  generateRay camera sceneWidth sceneHeight x y
+      intersections = closestIntersection ray objects
+    in
+      case intersections of Nothing -> white
+                            Just distObj -> getColorFromIntersection distObj
 
-getColorFromIntersection (Just ( _ , Object _ (Material color))) = color
+
+getColorFromIntersection :: (Double, Object) -> PixelRGB8
+getColorFromIntersection ( _ , Object _ (Material color)) = color
 
 -- Generating rays, assuming distance to the image is 1 unit
 generateRay :: Camera -> Int -> Int -> Int -> Int -> Ray
