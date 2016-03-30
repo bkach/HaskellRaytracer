@@ -54,9 +54,6 @@ white = PixelRGB8 255 255 255
 black :: PixelRGB8
 black = PixelRGB8 0 0 0
 
-redMaterial :: Material
-redMaterial = Material red
-
 spheres :: [Shape]
 spheres = [Sphere (Vector (-3) 3.5 (-8)) 3, Sphere (Vector 3 3.5 (-8)) 1]
 
@@ -65,7 +62,7 @@ objects = [Object
                 (Sphere (Vector (-3) 3.5 (-8)) 3) 
                 (Material red),
            Object
-                (Sphere (Vector 3 3.5 (-8)) 1)
+                (Sphere (Vector 1.5 3.5 (-6)) 3)
                 (Material green)]
 
 lights :: [Light]
@@ -129,18 +126,18 @@ getPosition (Camera _ position _ ) = position
 closestIntersection :: Ray -> [Object] -> Maybe (Double, Object)
 closestIntersection ray objects
     | null intersections = Nothing
-    | otherwise = Just $ minimumBy tupleMinimum (map fromJust intersections)
+    | otherwise = Just $ minimumBy minimumDefinedByFirst  (map fromJust intersections)
     where intersections = filter isJust $ map (intersects ray) objects
 
-tupleMinimum :: (Double, Object) -> (Double,Object) -> Ordering
-tupleMinimum x y
+minimumDefinedByFirst :: (Double, Object) -> (Double,Object) -> Ordering
+minimumDefinedByFirst  x y
     | fst x < fst y = LT
     | fst x > fst y = GT
     | otherwise = EQ
 
 -- Minimum distance intersection
 intersects :: Ray -> Object -> Maybe (Double, Object)
-intersects (Ray origin direction) (Object (Sphere center radius) material) =
+intersects (Ray origin direction) object@(Object (Sphere center radius) material) =
     let
         l = origin `sub` center
         a = direction `dot` direction
@@ -150,7 +147,7 @@ intersects (Ray origin direction) (Object (Sphere center radius) material) =
     in
         case listOfRoots of
             [] -> Nothing
-            otherwise -> Just (minimum listOfRoots, Object (Sphere center radius) material)
+            otherwise -> Just (minimum listOfRoots, object)
 
 -- Finds a,b, and c for a^2*x + b*x + c*x = 0, useful for finding intersections
 roots :: Double -> Double -> Double -> [Double]
