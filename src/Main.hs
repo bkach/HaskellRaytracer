@@ -126,8 +126,8 @@ getPosition (Camera _ position _ ) = position
 closestIntersection :: Ray -> [Object] -> Maybe (Double, Object)
 closestIntersection ray objects
     | null intersections = Nothing
-    | otherwise = Just $ minimumBy minimumDefinedByFirst  (map fromJust intersections)
-    where intersections = filter isJust $ map (intersects ray) objects
+    | otherwise = Just $ minimumBy minimumDefinedByFirst intersections
+    where intersections = catMaybes $ map (intersects ray) objects
 
 minimumDefinedByFirst :: (Double, Object) -> (Double,Object) -> Ordering
 minimumDefinedByFirst  x y
