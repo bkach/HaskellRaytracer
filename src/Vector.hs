@@ -1,6 +1,7 @@
 module Vector where
 
 data Vector = Vector Double Double Double deriving(Show, Eq)
+type Point = Vector
 
 -- Helper Functions
 --
@@ -13,8 +14,8 @@ sub :: Vector -> Vector -> Vector
 scalarMult :: Double -> Vector -> Vector
 s `scalarMult` (Vector x y z) = Vector (x * s) (y * s) (z * s)
 
-dotProduct :: Vector -> Vector -> Double
-(Vector x y z) `dotProduct` (Vector x1 y1 z1) = x * x1 + y * y1 + z * z1
+dot :: Vector -> Vector -> Double
+(Vector x y z) `dot` (Vector x1 y1 z1) = x * x1 + y * y1 + z * z1
 
 cross :: Vector -> Vector -> Vector
 (Vector x y z) `cross` (Vector x1 y1 z1) = Vector (y * z1 + z *y1) (x * z1 + y * x1) (x * y1 + y * x1)
