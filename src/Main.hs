@@ -31,51 +31,47 @@ data Shape = Sphere Vector Double
             deriving (Show, Eq)
 data Light = PointLight Vector
 data Camera = Camera Double Vector Vector
-data Scene = Scene [Shape] [Light] Camera
+data Scene = Scene [Object] [Light] Camera Config
+data Config = Config { sceneWidth :: Int,
+                       sceneHeight :: Int,
+                       defaultColor :: Color
+}
 data Ray = Ray {origin :: Vector, direction :: Vector}
 
-sceneWidth :: Int
-sceneWidth = 500
-
-sceneHeight :: Int
-sceneHeight = 500
-
-spheres :: [Shape]
-spheres = [Sphere (Vector (-3) 3.5 (-8)) 3, Sphere (Vector 3 3.5 (-8)) 1]
-
-objects :: [Object]
-objects = [Object 
-                (Sphere (Vector (-3) 3.5 (-8)) 3) 
-                (Material Color.red),
-           Object
-                (Sphere (Vector 1.5 3.5 (-6)) 3)
-                (Material Color.green)]
-
-lights :: [Light]
-lights = [PointLight (Vector (-30) (-10) 20) ]
-
-camera :: Camera
-camera = Camera 45 (Vector 0 1.8 10) (Vector 0 3 0)
-
-scene :: Scene
-scene = Scene spheres lights camera
-
 main :: IO()
-main = writePng "output.png" $ generateImage (\x y -> Color.color2Px $ Main.trace x y) sceneWidth sceneHeight
+main =
+  let
+    objects :: [Object]
+    objects = [Object
+                    (Sphere (Vector (-3) 3.5 (-8)) 3)
+                    (Material Color.red),
+               Object
+                    (Sphere (Vector 1.5 3.5 (-6)) 3)
+                    (Material Color.green)]
 
-minWithEmpty :: [Double] -> Double
-minWithEmpty [] = -1
-minWithEmpty list = minimum list
+    lights :: [Light]
+    lights = [PointLight (Vector (-30) (-10) 20) ]
 
-trace :: Int -> Int -> Color
-trace x y =
+    camera :: Camera
+    camera = Camera 45 (Vector 0 1.8 10) (Vector 0 3 0)
+
+    config = Config 500 500 Color.white
+
+    scene :: Scene
+    scene = Scene objects lights camera config
+
+    img = generateImage (\x y -> Color.color2Px $ Main.trace scene x y) (sceneWidth config) (sceneHeight config)
+   in
+    writePng "output.png" img
+
+trace :: Scene -> Int -> Int -> Color
+trace (Scene objects lights camera config) x y =
     let
-      ray =  generateRay camera sceneWidth sceneHeight x y
+      ray =  generateRay camera (sceneWidth config) (sceneHeight config) x y
       intersections = closestIntersection ray objects
     in
-      case intersections of Nothing -> Color.white
+      case intersections of Nothing -> defaultColor config
                             Just distObj -> getColorFromIntersection distObj
-
 
 getColorFromIntersection :: (Double, Object) -> Color
 getColorFromIntersection ( _ , Object _ (Material color)) = color
