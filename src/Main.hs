@@ -105,7 +105,7 @@ closestIntersection :: Ray -> [Object] -> Maybe (Double, Object)
 closestIntersection ray objects
     | null intersections = Nothing
     | otherwise = Just $ minimumBy minimumDefinedByFirst intersections
-    where intersections = catMaybes $ map (intersects ray) objects
+    where intersections = mapMaybe (intersects ray) objects
 
 minimumDefinedByFirst :: (Double, Object) -> (Double,Object) -> Ordering
 minimumDefinedByFirst  x y
