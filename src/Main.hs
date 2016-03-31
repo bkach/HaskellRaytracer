@@ -70,8 +70,7 @@ trace (Scene objects lights camera config) x y =
       ray =  generateRay camera (sceneWidth config) (sceneHeight config) x y
       intersections = closestIntersection ray objects
     in
-      case intersections of Nothing -> defaultColor config
-                            Just distObj -> getColorFromIntersection distObj
+      fromMaybe Color.white $ fmap getColorFromIntersection intersections
 
 getColorFromIntersection :: (Double, Object) -> Color
 getColorFromIntersection ( _ , Object _ (Material color)) = color
