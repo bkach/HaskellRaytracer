@@ -21,6 +21,7 @@ import Data.List
 import Debug.Trace
 import Data.Function
 import Color
+import Camera
 
 -- Basic Data Types
 data Object = Object Shape Material
@@ -30,7 +31,6 @@ data Shape = Sphere Vector Double
 --           | Triangle Vector Vector Vector
             deriving (Show, Eq)
 data Light = PointLight Vector
-data Camera = Camera Double Vector Vector
 data Scene = Scene [Object] [Light] Camera Config
 data Config = Config { sceneWidth :: Int,
                        sceneHeight :: Int,
@@ -81,15 +81,15 @@ generateRay :: Camera -> Int -> Int -> Int -> Int -> Ray
 generateRay camera width height x y = 
     let 
          -- Vector from camera to lookAt point
-        eyeVector = buildEyeVector camera 
+        centerVector = eyeVector camera
         -- Vector in local right direction
-        rightVector = normalize (eyeVector `cross` Vector 0 1 0)
-        upVector = normalize (rightVector `cross` eyeVector)
+        rightVector = normalize (centerVector `cross` Vector 0 1 0)
+        upVector = normalize (rightVector `cross` centerVector)
         -- Halves are taken to make right angles
-        halfFov = fovInRadians camera
+        halfFov = fov camera / 2
         -- This aspect ratio will be used, but are not the width and height of the camera
         aspectRatio = h / w
-        halfWidth = tan halfFov
+        halfWidth = tan $ deg2Rad halfFov
         halfHeight = aspectRatio * halfWidth
         cameraWidth = halfWidth * 2
         cameraHeight = halfHeight * 2
@@ -97,19 +97,10 @@ generateRay camera width height x y =
         pixelHeight = cameraHeight / (h - 1)
         scaledX = ((fromIntegral x * pixelWidth) - halfWidth)  `scalarMult` rightVector
         scaledY = ((fromIntegral y * pixelHeight) - halfHeight) `scalarMult`  upVector 
-        orientation = normalize $ eyeVector `add` scaledX `add` scaledY
-    in  Ray (getPosition camera) orientation
+        orientation = normalize $ centerVector `add` scaledX `add` scaledY
+    in  Ray (cameraPosition camera) orientation
     where w = fromIntegral width
           h = fromIntegral height
-
-buildEyeVector :: Camera -> Vector
-buildEyeVector (Camera _ location lookAt) = normalize (lookAt `sub` location)
-
-fovInRadians :: Camera -> Double
-fovInRadians (Camera fov _ _ ) = pi * (fov / 2) / 180
-
-getPosition :: Camera -> Vector
-getPosition (Camera _ position _ ) = position
 
 closestIntersection :: Ray -> [Object] -> Maybe (Double, Object)
 closestIntersection ray objects
@@ -136,6 +127,9 @@ intersects (Ray origin direction) object@(Object (Sphere center radius) material
         case listOfRoots of
             [] -> Nothing
             otherwise -> Just (minimum listOfRoots, object)
+
+deg2Rad :: Double -> Double
+deg2Rad d = d * pi / 180
 
 -- Finds a,b, and c for a^2*x + b*x + c*x = 0, useful for finding intersections
 roots :: Double -> Double -> Double -> [Double]
