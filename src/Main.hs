@@ -31,18 +31,16 @@ data Shape = Sphere Vector Double
             deriving (Show, Eq)
 data Light = PointLight Vector
 data Camera = Camera Double Vector Vector
-data Scene = Scene [Object] [Light] Camera Int Int
+data Scene = Scene [Object] [Light] Camera Config
+data Config = Config { sceneWidth :: Int,
+                       sceneHeight :: Int,
+                       defaultColor :: Color
+}
 data Ray = Ray {origin :: Vector, direction :: Vector}
 
 main :: IO()
 main =
   let
-    sceneWidth :: Int
-    sceneWidth = 500
-
-    sceneHeight :: Int
-    sceneHeight = 500
-
     objects :: [Object]
     objects = [Object
                     (Sphere (Vector (-3) 3.5 (-8)) 3)
@@ -57,20 +55,22 @@ main =
     camera :: Camera
     camera = Camera 45 (Vector 0 1.8 10) (Vector 0 3 0)
 
-    scene :: Scene
-    scene = Scene objects lights camera sceneWidth sceneHeight
+    config = Config 500 500 Color.white
 
-    img = generateImage (\x y -> Color.color2Px $ Main.trace scene x y) sceneWidth sceneHeight
+    scene :: Scene
+    scene = Scene objects lights camera config
+
+    img = generateImage (\x y -> Color.color2Px $ Main.trace scene x y) (sceneWidth config) (sceneHeight config)
    in
     writePng "output.png" img
 
 trace :: Scene -> Int -> Int -> Color
-trace (Scene objects lights camera width height) x y =
+trace (Scene objects lights camera config) x y =
     let
-      ray =  generateRay camera width height x y
+      ray =  generateRay camera (sceneWidth config) (sceneHeight config) x y
       intersections = closestIntersection ray objects
     in
-      case intersections of Nothing -> Color.white
+      case intersections of Nothing -> defaultColor config
                             Just distObj -> getColorFromIntersection distObj
 
 getColorFromIntersection :: (Double, Object) -> Color
