@@ -20,7 +20,7 @@ import Data.Maybe
 import Data.List
 import Debug.Trace
 import Data.Function
-import Colours
+import Colour
 
 -- Basic Data Types
 data Object = Object Shape Material
@@ -46,10 +46,10 @@ spheres = [Sphere (Vector (-3) 3.5 (-8)) 3, Sphere (Vector 3 3.5 (-8)) 1]
 objects :: [Object]
 objects = [Object 
                 (Sphere (Vector (-3) 3.5 (-8)) 3) 
-                (Material red),
+                (Material Colour.red),
            Object
                 (Sphere (Vector 1.5 3.5 (-6)) 3)
-                (Material green)]
+                (Material Colour.green)]
 
 lights :: [Light]
 lights = [PointLight (Vector (-30) (-10) 20) ]
@@ -61,7 +61,7 @@ scene :: Scene
 scene = Scene spheres lights camera
 
 main :: IO()
-main = writePng "output.png" $ generateImage (\x y -> colour2Px $ Main.trace x y) sceneWidth sceneHeight
+main = writePng "output.png" $ generateImage (\x y -> Colour.colour2Px $ Main.trace x y) sceneWidth sceneHeight
 
 minWithEmpty :: [Double] -> Double
 minWithEmpty [] = -1
@@ -73,7 +73,7 @@ trace x y =
       ray =  generateRay camera sceneWidth sceneHeight x y
       intersections = closestIntersection ray objects
     in
-      case intersections of Nothing -> white
+      case intersections of Nothing -> Colour.white
                             Just distObj -> getColorFromIntersection distObj
 
 

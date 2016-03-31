@@ -1,4 +1,4 @@
-module Colours where
+module Colour where
 
 import Data.Word (Word8)
 import Codec.Picture (PixelRGB8(..))
