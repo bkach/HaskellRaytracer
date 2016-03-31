@@ -70,8 +70,7 @@ trace (Scene objects lights camera config) x y =
       ray =  generateRay camera (sceneWidth config) (sceneHeight config) x y
       intersections = closestIntersection ray objects
     in
-      case intersections of Nothing -> defaultColor config
-                            Just distObj -> getColorFromIntersection distObj
+      maybe Color.white getColorFromIntersection intersections
 
 getColorFromIntersection :: (Double, Object) -> Color
 getColorFromIntersection ( _ , Object _ (Material color)) = color
@@ -106,7 +105,7 @@ closestIntersection :: Ray -> [Object] -> Maybe (Double, Object)
 closestIntersection ray objects
     | null intersections = Nothing
     | otherwise = Just $ minimumBy minimumDefinedByFirst intersections
-    where intersections = catMaybes $ map (intersects ray) objects
+    where intersections = mapMaybe (intersects ray) objects
 
 minimumDefinedByFirst :: (Double, Object) -> (Double,Object) -> Ordering
 minimumDefinedByFirst  x y
