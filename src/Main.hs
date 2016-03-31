@@ -20,10 +20,11 @@ import Data.Maybe
 import Data.List
 import Debug.Trace
 import Data.Function
+import Colour
 
 -- Basic Data Types
 data Object = Object Shape Material
-data Material = Material PixelRGB8
+data Material = Material Colour
 data Shape = Sphere Vector Double
 --           | Plane Vector Vector 
 --           | Triangle Vector Vector Vector
@@ -39,31 +40,16 @@ sceneWidth = 500
 sceneHeight :: Int
 sceneHeight = 500
 
-red :: PixelRGB8
-red = PixelRGB8 255 0 0
-
-green :: PixelRGB8
-green = PixelRGB8 0 255 0
-
-blue :: PixelRGB8
-blue = PixelRGB8 0 0 255
-
-white :: PixelRGB8
-white = PixelRGB8 255 255 255
-
-black :: PixelRGB8
-black = PixelRGB8 0 0 0
-
 spheres :: [Shape]
 spheres = [Sphere (Vector (-3) 3.5 (-8)) 3, Sphere (Vector 3 3.5 (-8)) 1]
 
 objects :: [Object]
 objects = [Object 
                 (Sphere (Vector (-3) 3.5 (-8)) 3) 
-                (Material red),
+                (Material Colour.red),
            Object
                 (Sphere (Vector 1.5 3.5 (-6)) 3)
-                (Material green)]
+                (Material Colour.green)]
 
 lights :: [Light]
 lights = [PointLight (Vector (-30) (-10) 20) ]
@@ -75,23 +61,23 @@ scene :: Scene
 scene = Scene spheres lights camera
 
 main :: IO()
-main = writePng "output.png" $ generateImage Main.trace sceneWidth sceneHeight
+main = writePng "output.png" $ generateImage (\x y -> Colour.colour2Px $ Main.trace x y) sceneWidth sceneHeight
 
 minWithEmpty :: [Double] -> Double
 minWithEmpty [] = -1
 minWithEmpty list = minimum list
 
-trace :: Int -> Int -> PixelRGB8
+trace :: Int -> Int -> Colour
 trace x y =
     let
       ray =  generateRay camera sceneWidth sceneHeight x y
       intersections = closestIntersection ray objects
     in
-      case intersections of Nothing -> white
+      case intersections of Nothing -> Colour.white
                             Just distObj -> getColorFromIntersection distObj
 
 
-getColorFromIntersection :: (Double, Object) -> PixelRGB8
+getColorFromIntersection :: (Double, Object) -> Colour
 getColorFromIntersection ( _ , Object _ (Material color)) = color
 
 -- Generating rays, assuming distance to the image is 1 unit
