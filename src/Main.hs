@@ -27,7 +27,7 @@ import Camera
 data Object = Object Shape Material
 data Material = Material Color
 data Shape = Sphere Vector Double
---           | Plane Vector Vector 
+--           | Plane Vector Vector
 --           | Triangle Vector Vector Vector
             deriving (Show, Eq)
 data Light = PointLight Vector
@@ -77,8 +77,8 @@ getColorFromIntersection ( _ , Object _ (Material color)) = color
 
 -- Generating rays, assuming distance to the image is 1 unit
 generateRay :: Camera -> Int -> Int -> Int -> Int -> Ray
-generateRay camera width height x y = 
-    let 
+generateRay camera width height x y =
+    let
          -- Vector from camera to lookAt point
         centerVector = eyeVector camera
         -- Vector in local right direction
@@ -95,7 +95,7 @@ generateRay camera width height x y =
         pixelWidth = cameraWidth / (w - 1)
         pixelHeight = cameraHeight / (h - 1)
         scaledX = ((fromIntegral x * pixelWidth) - halfWidth)  `scalarMult` rightVector
-        scaledY = ((fromIntegral y * pixelHeight) - halfHeight) `scalarMult`  upVector 
+        scaledY = ((fromIntegral y * pixelHeight) - halfHeight) `scalarMult`  upVector
         orientation = normalize $ centerVector `add` scaledX `add` scaledY
     in  Ray (cameraPosition camera) orientation
     where w = fromIntegral width
