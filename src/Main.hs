@@ -17,7 +17,7 @@ module Main where
 import Vector
 import Color
 import Camera
-import Utils
+import Utils (degreesToRadians, roots)
 import Codec.Picture
 import Codec.Picture.Png
 import Data.Maybe
