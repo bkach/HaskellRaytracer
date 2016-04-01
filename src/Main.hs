@@ -11,17 +11,17 @@
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
+--
 module Main where
 
 import Vector
+import Color
+import Camera
+import Utils
 import Codec.Picture
 import Codec.Picture.Png
 import Data.Maybe
 import Data.List
-import Debug.Trace
-import Data.Function
-import Color
-import Camera
 
 -- Basic Data Types
 data Object = Object Shape Material
@@ -34,8 +34,8 @@ data Light = PointLight Vector
 data Scene = Scene [Object] [Light] Camera Config
 data Config = Config { sceneWidth :: Int,
                        sceneHeight :: Int,
-                       defaultColor :: Color
-}
+                       defaultColor :: Color }
+
 data Ray = Ray {origin :: Vector, direction :: Vector}
 
 main :: IO()
@@ -60,7 +60,7 @@ main =
     scene :: Scene
     scene = Scene objects lights camera config
 
-    img = generateImage (\x y -> Color.color2Px $ Main.trace scene x y) (sceneWidth config) (sceneHeight config)
+    img = generateImage (\x y -> pixelRGB8 $ Main.trace scene x y) (sceneWidth config) (sceneHeight config)
    in
     writePng "output.png" img
 
@@ -88,7 +88,7 @@ generateRay camera width height x y =
         halfFov = fov camera / 2
         -- This aspect ratio will be used, but are not the width and height of the camera
         aspectRatio = h / w
-        halfWidth = tan $ deg2Rad halfFov
+        halfWidth = tan $ degreesToRadians halfFov
         halfHeight = aspectRatio * halfWidth
         cameraWidth = halfWidth * 2
         cameraHeight = halfHeight * 2
@@ -105,7 +105,7 @@ closestIntersection :: Ray -> [Object] -> Maybe (Double, Object)
 closestIntersection ray objects
     | null intersections = Nothing
     | otherwise = Just $ minimumBy minimumDefinedByFirst intersections
-    where intersections = mapMaybe (intersects ray) objects
+    where intersections = mapMaybe (minIntersection ray) objects
 
 minimumDefinedByFirst :: (Double, Object) -> (Double,Object) -> Ordering
 minimumDefinedByFirst  x y
@@ -114,8 +114,8 @@ minimumDefinedByFirst  x y
     | otherwise = EQ
 
 -- Minimum distance intersection
-intersects :: Ray -> Object -> Maybe (Double, Object)
-intersects (Ray origin direction) object@(Object (Sphere center radius) material) =
+minIntersection :: Ray -> Object -> Maybe (Double, Object)
+minIntersection (Ray origin direction) object@(Object (Sphere center radius) material) =
     let
         l = origin `sub` center
         a = direction `dot` direction
@@ -126,14 +126,3 @@ intersects (Ray origin direction) object@(Object (Sphere center radius) material
         case listOfRoots of
             [] -> Nothing
             otherwise -> Just (minimum listOfRoots, object)
-
-deg2Rad :: Double -> Double
-deg2Rad d = d * pi / 180
-
--- Finds a,b, and c for a^2*x + b*x + c*x = 0, useful for finding intersections
-roots :: Double -> Double -> Double -> [Double]
-roots a b c
-    | descriminant == 0 = [0.5 * (-b)]
-    | descriminant > 0 = [0.5 * (-b + sqrt descriminant), 0.5 * (-b - sqrt descriminant)]
-    | otherwise = []
-    where descriminant = b * b - 4 * a * c

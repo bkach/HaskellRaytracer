@@ -5,8 +5,8 @@ import Codec.Picture (PixelRGB8(..))
 
 type Color = (Word8, Word8, Word8)
 
-color2Px :: Color -> PixelRGB8
-color2Px (r, g, b) = PixelRGB8 r g b
+pixelRGB8 :: Color -> PixelRGB8
+pixelRGB8  (r, g, b) = PixelRGB8 r g b
 
 red :: Color
 red = (255, 0, 0)
