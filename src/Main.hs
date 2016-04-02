@@ -22,6 +22,7 @@ import Codec.Picture
 import Codec.Picture.Png
 import Data.Maybe
 import Data.List
+import Debug.Trace
 
 -- Basic Data Types
 data Object = Object Shape Material
@@ -30,7 +31,7 @@ data Shape = Sphere Vector Double
 --           | Plane Vector Vector
 --           | Triangle Vector Vector Vector
             deriving (Show, Eq)
-data Light = PointLight Vector
+data Light = PointLight Vector Double
 data Scene = Scene [Object] [Light] Camera Config
 data Config = Config { sceneWidth :: Int,
                        sceneHeight :: Int,
@@ -50,12 +51,12 @@ main =
                     (Material Color.green)]
 
     lights :: [Light]
-    lights = [PointLight (Vector (-30) (-10) 20) ]
+    lights = [PointLight (Vector (-30) (-30) 20) 10]
 
     camera :: Camera
     camera = Camera 45 (Vector 0 1.8 10) (Vector 0 3 0)
 
-    config = Config 500 500 Color.white
+    config = Config 1000 1000 Color.white
 
     scene :: Scene
     scene = Scene objects lights camera config
@@ -68,12 +69,36 @@ trace :: Scene -> Int -> Int -> Color
 trace (Scene objects lights camera config) x y =
     let
       ray =  generateRay camera (sceneWidth config) (sceneHeight config) x y
-      intersections = closestIntersection ray objects
+      intersection = closestIntersection ray objects
     in
-      maybe Color.white getColorFromIntersection intersections
+      maybe Color.white (getColorFromIntersection ray lights) intersection
 
-getColorFromIntersection :: (Double, Object) -> Color
-getColorFromIntersection ( _ , Object _ (Material color)) = color
+pointAlongRay :: Ray -> Double -> Vector
+pointAlongRay ray distance = origin ray `add` (distance `scalarMult` direction ray)
+
+normalAtPoint :: Vector -> Shape -> Vector
+normalAtPoint point (Sphere center radius) = normalize (point `sub` center)
+
+totalLambertIntensity :: Vector -> Vector -> [Light] -> Double
+totalLambertIntensity point normal lights = sum $ map (lambertIntensity point normal) lights
+
+lambertIntensity :: Vector -> Vector -> Light -> Double
+lambertIntensity point normal (PointLight center intensity) = 
+    let lightDirection = normalize $ center `sub` point
+    in intensity * max 0 (normal `dot` lightDirection)
+
+-- Should also include light color
+lambertColor :: Ray -> Double -> Color -> Shape -> [Light] -> Color
+lambertColor ray hitDistance color shape lights = 
+    let hitPoint = pointAlongRay ray hitDistance
+        normal = normalAtPoint hitPoint shape
+        lIntensity = totalLambertIntensity hitPoint normal lights
+    in lIntensity `scalarMult` color
+
+
+getColorFromIntersection :: Ray -> [Light] -> (Double, Object) -> Color
+getColorFromIntersection ray lights (hitDistance , Object shape (Material color)) = 
+    lambertColor ray hitDistance color shape lights
 
 -- Generating rays, assuming distance to the image is 1 unit
 generateRay :: Camera -> Int -> Int -> Int -> Int -> Ray
