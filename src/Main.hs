@@ -59,7 +59,7 @@ main =
     camera :: Camera
     camera = Camera 45 (Vector 0 0 0) (Vector 0 0 3)
 
-    config = Config 1000 1000 Color.white
+    config = Config 500 500 Color.white
 
     scene :: Scene
     scene = Scene objects lights camera config
