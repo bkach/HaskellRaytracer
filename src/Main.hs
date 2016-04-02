@@ -27,11 +27,9 @@ import Debug.Trace
 -- Basic Data Types
 data Object = Object Shape Material
 data Material = Material Color
-data Shape = Sphere Vector Double
---           | Plane Vector Vector
---           | Triangle Vector Vector Vector
-            deriving (Show, Eq)
-data Light = PointLight Vector Double
+data Shape = Sphere Vector Double -- center, radius
+           | Plane Vector Vector  -- center, normal
+data Light = PointLight Vector Double -- center, intensity
 data Scene = Scene [Object] [Light] Camera Config
 data Config = Config { sceneWidth :: Int,
                        sceneHeight :: Int,
@@ -51,7 +49,10 @@ main =
                     (Material Color.green),
                Object
                     (Sphere (Vector 0 0 3) 0.5)
-                    (Material Color.blue)]
+                    (Material Color.blue),
+               Object
+                    (Plane (Vector 0 (-3) 0) (Vector 0 1 0))
+                    (Material Color.pink)]
 
     lights :: [Light]
     lights = [PointLight (Vector 1 1 1) 0.5, PointLight (Vector (-1) 1 1) 0.2]
@@ -81,6 +82,7 @@ pointAlongRay ray distance = origin ray `add` (distance `scalarMult` direction r
 
 normalAtPoint :: Vector -> Shape -> Vector
 normalAtPoint point (Sphere center radius) = normalize (point `sub` center)
+normalAtPoint point (Plane center normal) = normal
 
 totalLambertIntensity :: Vector -> Vector -> [Light] -> Double
 totalLambertIntensity point normal lights = sum $ map (lambertIntensity point normal) lights
@@ -143,7 +145,7 @@ minimumDefinedByFirst  x y
 
 -- Minimum distance intersection
 minIntersection :: Ray -> Object -> Maybe (Double, Object)
-minIntersection (Ray origin direction) object@(Object (Sphere center radius) material) =
+minIntersection (Ray origin direction) object@(Object (Sphere center radius) _) =
     let
         l = origin `sub` center
         a = direction `dot` direction
@@ -154,3 +156,6 @@ minIntersection (Ray origin direction) object@(Object (Sphere center radius) mat
         case listOfRoots of
             [] -> Nothing
             otherwise -> Just (minimum listOfRoots, object)
+minIntersection (Ray origin direction) object@(Object (Plane center normal) _) =
+    let distance = ((center `sub` origin) `dot` normal) / (direction `dot` normal)
+    in if distance < 0 then Nothing else Just (distance, object)

@@ -24,3 +24,5 @@ white = Vector 255 255 255
 black :: Color
 black = Vector 0 0 0
 
+pink :: Color
+pink = Vector 240 128 128
