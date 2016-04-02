@@ -44,24 +44,27 @@ main =
   let
     objects :: [Object]
     objects = [Object
-                    (Sphere (Vector (-3) 3.5 (-8)) 3)
+                    (Sphere (Vector 1 0 4) 0.5)
                     (Material Color.red),
                Object
-                    (Sphere (Vector 1.5 3.5 (-6)) 3)
-                    (Material Color.green)]
+                    (Sphere (Vector (-1) 0 4) 0.5)
+                    (Material Color.green),
+               Object
+                    (Sphere (Vector 0 0 3) 0.5)
+                    (Material Color.blue)]
 
     lights :: [Light]
-    lights = [PointLight (Vector (-30) (-30) 20) 10]
+    lights = [PointLight (Vector 1 1 1) 0.5, PointLight (Vector (-1) 1 1) 0.2]
 
     camera :: Camera
-    camera = Camera 45 (Vector 0 1.8 10) (Vector 0 3 0)
+    camera = Camera 45 (Vector 0 0 0) (Vector 0 0 3)
 
     config = Config 1000 1000 Color.white
 
     scene :: Scene
     scene = Scene objects lights camera config
 
-    img = generateImage (\x y -> pixelRGB8 $ Main.trace scene x y) (sceneWidth config) (sceneHeight config)
+    img = generateImage (\x y -> pixelRGB8 $ Main.trace scene x (sceneHeight config - y)) (sceneWidth config) (sceneHeight config)
    in
     writePng "output.png" img
 
