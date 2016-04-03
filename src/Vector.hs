@@ -30,3 +30,6 @@ magnitude (Vector x y z) = sqrt (x * x + y * y + z * z)
 neg :: Vector -> Vector
 neg = scalarMult (-1)
 
+distanceTo :: Vector -> Vector -> Double
+distanceTo (Vector x1 y1 z1) (Vector x2 y2 z2) = sqrt ((x2 - x1) ^ 2 + (y2 - y1) ^ 2 + (z2 - z1) ^ 2)
+

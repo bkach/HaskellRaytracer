@@ -29,6 +29,7 @@ data Object = Object Shape Material
 data Material = Material Color
 data Shape = Sphere Vector Double -- center, radius
            | Plane Vector Vector  -- center, normal
+           | Disk Vector Vector Double  -- center, normal, radius
 data Light = PointLight Vector Double -- center, intensity
 data Scene = Scene [Object] [Light] Camera Config
 data Config = Config { sceneWidth :: Int,
@@ -41,24 +42,29 @@ main :: IO()
 main =
   let
     objects :: [Object]
-    objects = [Object
+    objects = [
+               Object
                     (Sphere (Vector 1 0 4) 0.5)
                     (Material Color.red),
                Object
                     (Sphere (Vector (-1) 0 4) 0.5)
                     (Material Color.green),
                Object
-                    (Sphere (Vector 0 0 3) 0.5)
+                    (Sphere (Vector 0 0 4) 0.5)
                     (Material Color.blue),
                Object
                     (Plane (Vector 0 (-3) 0) (Vector 0 1 0))
-                    (Material Color.pink)]
+                    (Material Color.pink),
+               Object
+                    (Disk (Vector 0 (-3) 8) (Vector 1 1 (-1)) 3)
+                    (Material Color.green)
+                ]
 
     lights :: [Light]
-    lights = [PointLight (Vector 1 1 1) 0.5, PointLight (Vector (-1) 1 1) 0.2]
+    lights = [PointLight (Vector 1 1 0) 0.5, PointLight (Vector (-1) 1 0) 0.2]
 
     camera :: Camera
-    camera = Camera 45 (Vector 0 0 0) (Vector 0 0 3)
+    camera = Camera 45 (Vector 0 0 0) (Vector 0 0 1)
 
     config = Config 500 500 Color.white
 
@@ -81,8 +87,9 @@ pointAlongRay :: Ray -> Double -> Vector
 pointAlongRay ray distance = origin ray `add` (distance `scalarMult` direction ray)
 
 normalAtPoint :: Vector -> Shape -> Vector
-normalAtPoint point (Sphere center radius) = normalize (point `sub` center)
-normalAtPoint point (Plane center normal) = normal
+normalAtPoint point (Sphere center _) = normalize (point `sub` center)
+normalAtPoint point (Plane _ normal) = normal
+normalAtPoint point (Disk _ normal _) = normal
 
 totalLambertIntensity :: Vector -> Vector -> [Light] -> Double
 totalLambertIntensity point normal lights = sum $ map (lambertIntensity point normal) lights
@@ -145,6 +152,7 @@ minimumDefinedByFirst  x y
 
 -- Minimum distance intersection
 minIntersection :: Ray -> Object -> Maybe (Double, Object)
+-- Sphere
 minIntersection (Ray origin direction) object@(Object (Sphere center radius) _) =
     let
         l = origin `sub` center
@@ -156,6 +164,22 @@ minIntersection (Ray origin direction) object@(Object (Sphere center radius) _) 
         case listOfRoots of
             [] -> Nothing
             otherwise -> Just (minimum listOfRoots, object)
+-- Plane
 minIntersection (Ray origin direction) object@(Object (Plane center normal) _) =
-    let distance = ((center `sub` origin) `dot` normal) / (direction `dot` normal)
-    in if distance < 0 then Nothing else Just (distance, object)
+    let 
+        distance = ((center `sub` origin) `dot` normal) / (direction `dot` normal)
+    in 
+        if distance <= 0 then Nothing else Just (distance, object)
+-- Disk
+minIntersection ray@(Ray origin direction) object@(Object (Disk center normal radius) material) =
+    let 
+        intersection = minIntersection ray (Object (Plane center normal) material)
+    in 
+        case intersection of
+            Nothing -> Nothing
+            Just (distanceAlongRay, _) -> 
+                let 
+                    distance = pointAlongRay ray distanceAlongRay `distanceTo` center
+                in 
+                    if distance > radius then Nothing else Just (distanceAlongRay, object)
+
