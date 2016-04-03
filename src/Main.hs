@@ -29,7 +29,7 @@ data Object = Object Shape Material deriving(Eq)
 data Material = Material Color deriving(Eq)
 data Shape = Sphere Vector Double  -- center, radius
            | Plane Vector Vector  deriving(Eq) -- center, normal
-data Light = PointLight Vector Double -- center, intensity
+data Light = PointLight {center :: Vector, intensity :: Double} -- center, intensity
 data Scene = Scene [Object] [Light] Camera Config
 data Config = Config { sceneWidth :: Int,
                        sceneHeight :: Int,
@@ -58,7 +58,7 @@ main =
                     (Material Color.pink)]
 
     lights :: [Light]
-    lights = [PointLight (Vector 0 0.5 0) 0.8]
+    lights = [PointLight (Vector 0 0.5 0) 0.8, PointLight (Vector 0.5 0.5 0) 0.2]
 
     camera :: Camera
     camera = Camera 45 (Vector 0 0 0) (Vector 0 0 1)
@@ -75,17 +75,14 @@ main =
 trace :: Scene -> Int -> Int -> Color
 trace (Scene objects lights camera config) x y =
     let
+      backgroundColor = defaultColor config
       ray =  generateRay camera (sceneWidth config) (sceneHeight config) x y
       intersection = closestIntersection ray objects
-      visibleLights = case intersection of
-                        Nothing -> lights
-                        Just (distance, currentObject@(Object shape _)) -> 
-                            let 
-                                hitPoint = pointAlongRay ray distance
-                                otherObjects = filter (/= currentObject) objects
-                            in filter (isLightVisible otherObjects hitPoint) lights
     in
-      maybe Color.white (getColorFromIntersection (defaultColor config) ray visibleLights) intersection
+        case intersection of 
+            Nothing -> backgroundColor
+            (Just intersectionObj@(direction,object)) -> 
+                getColorFromIntersection object backgroundColor ray lights objects intersectionObj
 
 isLightVisible :: [Object] -> Vector -> Light -> Bool
 isLightVisible objects point light = isLightVisible' objects point light True
@@ -99,15 +96,24 @@ isLightVisible' (object@(Object shape material):objects) point light@(PointLight
     in
         maybe (recursiveCall True) (\(distance,_) -> (distance < 0)) intersection
 
-getColorFromIntersection :: Color -> Ray -> [Light] -> (Double, Object) -> Color
-getColorFromIntersection defaultColor ray lights (hitDistance , Object shape (Material color)) = 
-    lambertColor ray hitDistance color shape lights
+getColorFromIntersection :: Object -> Color -> Ray -> [Light] -> [Object] -> (Double, Object) -> Color
+getColorFromIntersection currentObject defaultColor ray lights objects (hitDistance , Object shape (Material color)) = 
+    let 
+        hitPoint = pointAlongRay ray hitDistance 
+        otherObjects = filter (/= currentObject) objects 
+        pointHitsLight = isLightVisible otherObjects hitPoint
+        dimmedLights = map 
+                (\light -> 
+                    if pointHitsLight light 
+                    then light 
+                    else PointLight (center light) (0.15 * intensity light)) lights
+    in
+        lambertColor hitPoint color shape dimmedLights 
 
 -- Should also include light color
-lambertColor :: Ray -> Double -> Color -> Shape -> [Light] -> Color
-lambertColor ray hitDistance color shape lights = 
-    let hitPoint = pointAlongRay ray hitDistance
-        normal = normalAtPoint hitPoint shape
+lambertColor :: Vector -> Color -> Shape -> [Light] -> Color
+lambertColor hitPoint color shape lights = 
+    let normal = normalAtPoint hitPoint shape
         lIntensity = totalLambertIntensity hitPoint normal lights
     in lIntensity `scalarMult` color
 
