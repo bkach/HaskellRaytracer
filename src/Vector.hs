@@ -1,6 +1,6 @@
 module Vector where
 
-data Vector = Vector Double Double Double deriving(Show, Eq)
+data Vector = Vector Double Double Double deriving(Eq)
 type Point = Vector
 
 -- Helper Functions

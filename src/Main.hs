@@ -25,10 +25,10 @@ import Data.List
 import Debug.Trace
 
 -- Basic Data Types
-data Object = Object Shape Material
-data Material = Material Color
-data Shape = Sphere Vector Double -- center, radius
-           | Plane Vector Vector  -- center, normal
+data Object = Object Shape Material deriving(Eq)
+data Material = Material Color deriving(Eq)
+data Shape = Sphere Vector Double  -- center, radius
+           | Plane Vector Vector  deriving(Eq) -- center, normal
 data Light = PointLight Vector Double -- center, intensity
 data Scene = Scene [Object] [Light] Camera Config
 data Config = Config { sceneWidth :: Int,
@@ -42,7 +42,7 @@ main =
   let
     objects :: [Object]
     objects = [Object
-                    (Sphere (Vector 1 0 4) 0.5)
+                    (Sphere (Vector 0.5 0 2) 0.5)
                     (Material Color.red),
                Object
                     (Sphere (Vector (-1) 0 4) 0.5)
@@ -51,14 +51,17 @@ main =
                     (Sphere (Vector 0 0 3) 0.5)
                     (Material Color.blue),
                Object
-                    (Plane (Vector 0 (-3) 0) (Vector 0 1 0))
+                    (Plane (Vector 0 (-1) 0) (Vector 0 1 0))
+                    (Material Color.pink),
+               Object
+                    (Plane (Vector 0 0 4.5) (Vector 0 0 (-1)))
                     (Material Color.pink)]
 
     lights :: [Light]
-    lights = [PointLight (Vector 1 1 1) 0.5, PointLight (Vector (-1) 1 1) 0.2]
+    lights = [PointLight (Vector 0 0.5 0) 0.8]
 
     camera :: Camera
-    camera = Camera 45 (Vector 0 0 0) (Vector 0 0 3)
+    camera = Camera 45 (Vector 0 0 0) (Vector 0 0 1)
 
     config = Config 500 500 Color.white
 
@@ -74,23 +77,31 @@ trace (Scene objects lights camera config) x y =
     let
       ray =  generateRay camera (sceneWidth config) (sceneHeight config) x y
       intersection = closestIntersection ray objects
+      visibleLights = case intersection of
+                        Nothing -> lights
+                        Just (distance, currentObject@(Object shape _)) -> 
+                            let 
+                                hitPoint = pointAlongRay ray distance
+                                otherObjects = filter (/= currentObject) objects
+                            in filter (isLightVisible otherObjects hitPoint) lights
     in
-      maybe Color.white (getColorFromIntersection ray lights) intersection
+      maybe Color.white (getColorFromIntersection (defaultColor config) ray visibleLights) intersection
 
-pointAlongRay :: Ray -> Double -> Vector
-pointAlongRay ray distance = origin ray `add` (distance `scalarMult` direction ray)
+isLightVisible :: [Object] -> Vector -> Light -> Bool
+isLightVisible objects point light = isLightVisible' objects point light True
 
-normalAtPoint :: Vector -> Shape -> Vector
-normalAtPoint point (Sphere center radius) = normalize (point `sub` center)
-normalAtPoint point (Plane center normal) = normal
+isLightVisible' [] point light acc = acc
+isLightVisible' (object@(Object shape material):objects) point light@(PointLight center _) True = 
+    let 
+        direction = normalize $ center `sub` point
+        intersection = minIntersection (Ray point direction) object
+        recursiveCall = isLightVisible' objects point light
+    in
+        maybe (recursiveCall True) (\(distance,_) -> (distance < 0)) intersection
 
-totalLambertIntensity :: Vector -> Vector -> [Light] -> Double
-totalLambertIntensity point normal lights = sum $ map (lambertIntensity point normal) lights
-
-lambertIntensity :: Vector -> Vector -> Light -> Double
-lambertIntensity point normal (PointLight center intensity) = 
-    let lightDirection = normalize $ center `sub` point
-    in intensity * max 0 (normal `dot` lightDirection)
+getColorFromIntersection :: Color -> Ray -> [Light] -> (Double, Object) -> Color
+getColorFromIntersection defaultColor ray lights (hitDistance , Object shape (Material color)) = 
+    lambertColor ray hitDistance color shape lights
 
 -- Should also include light color
 lambertColor :: Ray -> Double -> Color -> Shape -> [Light] -> Color
@@ -100,10 +111,22 @@ lambertColor ray hitDistance color shape lights =
         lIntensity = totalLambertIntensity hitPoint normal lights
     in lIntensity `scalarMult` color
 
+pointAlongRay :: Ray -> Double -> Vector
+pointAlongRay ray distance = origin ray `add` (distance `scalarMult` direction ray)
 
-getColorFromIntersection :: Ray -> [Light] -> (Double, Object) -> Color
-getColorFromIntersection ray lights (hitDistance , Object shape (Material color)) = 
-    lambertColor ray hitDistance color shape lights
+normalAtPoint :: Vector -> Shape -> Vector
+normalAtPoint point (Sphere center radius) = normalize (point `sub` center)
+normalAtPoint point (Plane center normal) = normal
+
+totalLambertIntensity :: Vector -> Vector -> [Light] -> Double
+totalLambertIntensity point normal lights =
+    sum $ map (lambertIntensity point normal) lights
+
+lambertIntensity :: Vector -> Vector -> Light -> Double
+lambertIntensity point normal (PointLight center intensity) = 
+    let lightDirection = normalize $ center `sub` point
+    in intensity * max 0 (normal `dot` lightDirection)
+
 
 -- Generating rays, assuming distance to the image is 1 unit
 generateRay :: Camera -> Int -> Int -> Int -> Int -> Ray
