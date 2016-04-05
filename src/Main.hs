@@ -25,11 +25,11 @@ import Data.List
 import Debug.Trace
 
 -- Basic Data Types
-data Object = Object Shape Material
-data Material = Material Color
-data Shape = Sphere Vector Double -- center, radius
-           | Plane Vector Vector  -- center, normal
-data Light = PointLight Vector Double -- center, intensity
+data Object = Object Shape Material deriving(Eq)
+data Material = Material Color deriving(Eq)
+data Shape = Sphere Vector Double  -- center, radius
+           | Plane Vector Vector  deriving(Eq) -- center, normal
+data Light = PointLight {center :: Vector, intensity :: Double} -- center, intensity
 data Scene = Scene [Object] [Light] Camera Config
 data Config = Config { sceneWidth :: Int,
                        sceneHeight :: Int,
@@ -42,7 +42,7 @@ main =
   let
     objects :: [Object]
     objects = [Object
-                    (Sphere (Vector 1 0 4) 0.5)
+                    (Sphere (Vector 0.5 0 2) 0.5)
                     (Material Color.red),
                Object
                     (Sphere (Vector (-1) 0 4) 0.5)
@@ -51,14 +51,15 @@ main =
                     (Sphere (Vector 0 0 3) 0.5)
                     (Material Color.blue),
                Object
-                    (Plane (Vector 0 (-3) 0) (Vector 0 1 0))
-                    (Material Color.pink)]
+                    (Plane (Vector 0 (-0.5) 0) (Vector 0 1 0))
+                    (Material Color.pink)
+              ]
 
     lights :: [Light]
-    lights = [PointLight (Vector 1 1 1) 0.5, PointLight (Vector (-1) 1 1) 0.2]
+    lights = [PointLight (Vector 0 0.5 0) 0.8, PointLight (Vector 0.5 0.5 0) 0.2]
 
     camera :: Camera
-    camera = Camera 45 (Vector 0 0 0) (Vector 0 0 3)
+    camera = Camera 45 (Vector 0 0 0) (Vector 0 0 1)
 
     config = Config 500 500 Color.white
 
@@ -69,13 +70,54 @@ main =
    in
     writePng "output.png" img
 
+rotateObj :: Vector -> Double -> Object -> Object
+rotateObj  axis angle (Object (Sphere center radius) material) = Object (Sphere (rotate axis angle center) radius) material
+rotateObj axis angle (Object (Plane center normal) material) = Object (Plane (rotate axis angle center) normal) material
+
 trace :: Scene -> Int -> Int -> Color
 trace (Scene objects lights camera config) x y =
     let
+      backgroundColor = defaultColor config
       ray =  generateRay camera (sceneWidth config) (sceneHeight config) x y
       intersection = closestIntersection ray objects
     in
-      maybe Color.white (getColorFromIntersection ray lights) intersection
+        case intersection of 
+            Nothing -> backgroundColor
+            (Just intersectionObj@(direction,object)) -> 
+                getColorFromIntersection object backgroundColor ray lights objects intersectionObj
+
+isLightVisible :: [Object] -> Vector -> Light -> Bool
+isLightVisible objects point light = isLightVisible' objects point light True
+
+isLightVisible' [] point light acc = acc
+isLightVisible' (object@(Object shape material):objects) point light@(PointLight center _) True = 
+    let 
+        direction = normalize $ center `sub` point
+        intersection = minIntersection (Ray point direction) object
+        recursiveCall = isLightVisible' objects point light
+    in
+        maybe (recursiveCall True) (\(distance,_) -> (distance < 0)) intersection
+
+getColorFromIntersection :: Object -> Color -> Ray -> [Light] -> [Object] -> (Double, Object) -> Color
+getColorFromIntersection currentObject defaultColor ray lights objects (hitDistance , Object shape (Material color)) = 
+    let 
+        hitPoint = pointAlongRay ray hitDistance 
+        otherObjects = filter (/= currentObject) objects 
+        pointHitsLight = isLightVisible otherObjects hitPoint
+        dimmedLights = map 
+                (\light -> 
+                    if pointHitsLight light 
+                    then light 
+                    else PointLight (center light) (0.15 * intensity light)) lights
+    in
+        lambertColor hitPoint color shape lights 
+
+-- Should also include light color
+lambertColor :: Vector -> Color -> Shape -> [Light] -> Color
+lambertColor hitPoint color shape lights = 
+    let normal = normalAtPoint hitPoint shape
+        lIntensity = totalLambertIntensity hitPoint normal lights
+    in lIntensity `scalarMult` color
 
 pointAlongRay :: Ray -> Double -> Vector
 pointAlongRay ray distance = origin ray `add` (distance `scalarMult` direction ray)
@@ -85,25 +127,14 @@ normalAtPoint point (Sphere center radius) = normalize (point `sub` center)
 normalAtPoint point (Plane center normal) = normal
 
 totalLambertIntensity :: Vector -> Vector -> [Light] -> Double
-totalLambertIntensity point normal lights = sum $ map (lambertIntensity point normal) lights
+totalLambertIntensity point normal lights =
+    sum $ map (lambertIntensity point normal) lights
 
 lambertIntensity :: Vector -> Vector -> Light -> Double
 lambertIntensity point normal (PointLight center intensity) = 
     let lightDirection = normalize $ center `sub` point
     in intensity * max 0 (normal `dot` lightDirection)
 
--- Should also include light color
-lambertColor :: Ray -> Double -> Color -> Shape -> [Light] -> Color
-lambertColor ray hitDistance color shape lights = 
-    let hitPoint = pointAlongRay ray hitDistance
-        normal = normalAtPoint hitPoint shape
-        lIntensity = totalLambertIntensity hitPoint normal lights
-    in lIntensity `scalarMult` color
-
-
-getColorFromIntersection :: Ray -> [Light] -> (Double, Object) -> Color
-getColorFromIntersection ray lights (hitDistance , Object shape (Material color)) = 
-    lambertColor ray hitDistance color shape lights
 
 -- Generating rays, assuming distance to the image is 1 unit
 generateRay :: Camera -> Int -> Int -> Int -> Int -> Ray
@@ -118,7 +149,7 @@ generateRay camera width height x y =
         halfFov = fov camera / 2
         -- This aspect ratio will be used, but are not the width and height of the camera
         aspectRatio = h / w
-        halfWidth = tan $ degreesToRadians halfFov
+        halfWidth = tan $ Utils.degreesToRadians halfFov
         halfHeight = aspectRatio * halfWidth
         cameraWidth = halfWidth * 2
         cameraHeight = halfHeight * 2
@@ -145,17 +176,21 @@ minimumDefinedByFirst  x y
 
 -- Minimum distance intersection
 minIntersection :: Ray -> Object -> Maybe (Double, Object)
-minIntersection (Ray origin direction) object@(Object (Sphere center radius) _) =
+minIntersection ray@(Ray origin direction) object@(Object (Sphere center radius) _) =
     let
         l = origin `sub` center
         a = direction `dot` direction
         b = 2 * (direction `dot` l)
         c =  (l `dot` l) - radius^2
         listOfRoots = roots a b c
+        min = minimum listOfRoots
+        point = pointAlongRay ray min
     in
         case listOfRoots of
             [] -> Nothing
-            otherwise -> Just (minimum listOfRoots, object)
-minIntersection (Ray origin direction) object@(Object (Plane center normal) _) =
-    let distance = ((center `sub` origin) `dot` normal) / (direction `dot` normal)
+            otherwise -> Just (min, object)
+minIntersection ray@(Ray origin direction) object@(Object (Plane center normal) _) =
+    let 
+        distance = ((center `sub` origin) `dot` normal) / (direction `dot` normal)
+        point = pointAlongRay ray distance
     in if distance < 0 then Nothing else Just (distance, object)
