@@ -51,11 +51,9 @@ main =
                     (Sphere (Vector 0 0 3) 0.5)
                     (Material Color.blue),
                Object
-                    (Plane (Vector 0 (-1) 0) (Vector 0 1 0))
-                    (Material Color.pink),
-               Object
-                    (Plane (Vector 0 0 4.5) (Vector 0 0 (-1)))
-                    (Material Color.pink)]
+                    (Plane (Vector 0 (-0.5) 0) (Vector 0 1 0))
+                    (Material Color.pink)
+              ]
 
     lights :: [Light]
     lights = [PointLight (Vector 0 0.5 0) 0.8, PointLight (Vector 0.5 0.5 0) 0.2]
@@ -71,6 +69,10 @@ main =
     img = generateImage (\x y -> pixelRGB8 $ Main.trace scene x (sceneHeight config - y)) (sceneWidth config) (sceneHeight config)
    in
     writePng "output.png" img
+
+rotateObj :: Vector -> Double -> Object -> Object
+rotateObj  axis angle (Object (Sphere center radius) material) = Object (Sphere (rotate axis angle center) radius) material
+rotateObj axis angle (Object (Plane center normal) material) = Object (Plane (rotate axis angle center) normal) material
 
 trace :: Scene -> Int -> Int -> Color
 trace (Scene objects lights camera config) x y =
@@ -108,7 +110,7 @@ getColorFromIntersection currentObject defaultColor ray lights objects (hitDista
                     then light 
                     else PointLight (center light) (0.15 * intensity light)) lights
     in
-        lambertColor hitPoint color shape dimmedLights 
+        lambertColor hitPoint color shape lights 
 
 -- Should also include light color
 lambertColor :: Vector -> Color -> Shape -> [Light] -> Color
@@ -147,7 +149,7 @@ generateRay camera width height x y =
         halfFov = fov camera / 2
         -- This aspect ratio will be used, but are not the width and height of the camera
         aspectRatio = h / w
-        halfWidth = tan $ degreesToRadians halfFov
+        halfWidth = tan $ Utils.degreesToRadians halfFov
         halfHeight = aspectRatio * halfWidth
         cameraWidth = halfWidth * 2
         cameraHeight = halfHeight * 2
@@ -174,17 +176,21 @@ minimumDefinedByFirst  x y
 
 -- Minimum distance intersection
 minIntersection :: Ray -> Object -> Maybe (Double, Object)
-minIntersection (Ray origin direction) object@(Object (Sphere center radius) _) =
+minIntersection ray@(Ray origin direction) object@(Object (Sphere center radius) _) =
     let
         l = origin `sub` center
         a = direction `dot` direction
         b = 2 * (direction `dot` l)
         c =  (l `dot` l) - radius^2
         listOfRoots = roots a b c
+        min = minimum listOfRoots
+        point = pointAlongRay ray min
     in
         case listOfRoots of
             [] -> Nothing
-            otherwise -> Just (minimum listOfRoots, object)
-minIntersection (Ray origin direction) object@(Object (Plane center normal) _) =
-    let distance = ((center `sub` origin) `dot` normal) / (direction `dot` normal)
+            otherwise -> Just (min, object)
+minIntersection ray@(Ray origin direction) object@(Object (Plane center normal) _) =
+    let 
+        distance = ((center `sub` origin) `dot` normal) / (direction `dot` normal)
+        point = pointAlongRay ray distance
     in if distance < 0 then Nothing else Just (distance, object)
