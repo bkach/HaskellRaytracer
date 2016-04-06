@@ -1,23 +1,9 @@
--- Copyright 2016 Boris Kachscovsky
---
--- Licensed under the Apache License, Version 2.0 (the "License");
--- you may not use this file except in compliance with the License.
--- You may obtain a copy of the License at
---
---     http://www.apache.org/licenses/LICENSE-2.0
---
--- Unless required by applicable law or agreed to in writing, software
--- distributed under the License is distributed on an "AS IS" BASIS,
--- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
--- See the License for the specific language governing permissions and
--- limitations under the License.
---
 module Main where
 
 import Vector
 import Quaternion
 import Color
-import Camera
+--import Camera
 import Utils (degreesToRadians, roots)
 import Codec.Picture
 import Codec.Picture.Png
@@ -26,125 +12,78 @@ import Data.List
 import Debug.Trace
 
 -- Basic Data Types
-data Object = Object Shape Material deriving(Eq)
+data Container = Container Vector Object deriving(Eq) -- center
+data Object = Shape Geometry Material
+            | Light LightType 
+            | Camera Double Vector deriving(Eq) -- fov, lookAtVector
+data LightType = PointLight Double deriving(Eq) -- intensity
 data Material = Material Color deriving(Eq)
-data Shape = Sphere Vector Double  -- center, radius
-           | Plane Vector Vector  deriving(Eq) -- center, normal
-data Light = PointLight {center :: Vector, intensity :: Double} -- center, intensity
-data Scene = Scene [Object] [Light] Camera Config
-data Config = Config { sceneWidth :: Int,
-                       sceneHeight :: Int,
-                       defaultColor :: Color }
-
+data Geometry = Sphere Double -- radius
+           | Plane Vector  deriving(Eq) -- normal
+data Scene = Scene [Container] Config
+data Config = Config { sceneWidth :: Int, sceneHeight :: Int, defaultColor :: Color }
 data Ray = Ray {origin :: Vector, direction :: Vector}
 
 main :: IO()
 main =
   let
-    objects :: [Object]
-    objects = [Object
-                    (Sphere (Vector 0.5 0 2) 0.5)
-                    (Material Color.red),
-               Object
-                    (Sphere (Vector (-1) 0 4) 0.5)
-                    (Material Color.green),
-               Object
-                    (Sphere (Vector 0 0 3) 0.5)
-                    (Material Color.blue),
-               Object
-                    (Plane (Vector 0 (-0.5) 0) (Vector 0 1 0))
-                    (Material Color.pink)
-              ]
 
-    lights :: [Light]
-    lights = [PointLight (Vector 0 0.5 0) 0.8, PointLight (Vector 0.5 0.5 0) 0.2]
+    center = Vector 0 0 5
 
-    camera :: Camera
-    camera = Camera 45 (Vector 0 0 0) (Vector 0 0 1)
+    containers :: [Container]
+    containers =
+             [Container center (Shape (Sphere 0.5) (Material Color.red)),
+              rotateAroundPoint center (Vector 0 0 1) 45 (Container (Vector 1 0 5) (Shape (Sphere 0.5) (Material Color.blue))),
+              Container (Vector 0 (-1) 5) (Shape (Sphere 0.5) (Material Color.green)),
+              Container (Vector 0 (-1) 5) (Shape (Sphere 0.5) (Material Color.green)),
+              Container (Vector 0 (-2) 0) (Shape (Plane (Vector 0 1 0)) (Material Color.green)),
+              Container (Vector 0 0 7) (Shape (Plane (Vector 0 0 (-1))) (Material Color.red)),
+              Container (Vector 0 0.8 0) (Light (PointLight 0.8)),
+              Container (Vector 0.5 0.5 0) (Light (PointLight 0.1)),
+              Container (Vector 0 0 (-1)) (Camera 45 (Vector 0 0 1))]
 
     config = Config 500 500 Color.white
 
     scene :: Scene
-    scene = Scene objects lights camera config
+    scene = Scene containers config
 
-    img = generateImage (\x y -> pixelRGB8 $ Main.trace scene x (sceneHeight config - y)) (sceneWidth config) (sceneHeight config)
+    img = generateImage (\x y -> pixelRGB8 $ raytrace scene x (sceneHeight config - y)) (sceneWidth config) (sceneHeight config)
    in
-    writePng "output.png" img
+     writePng "output.png" img
 
-trace :: Scene -> Int -> Int -> Color
-trace (Scene objects lights camera config) x y =
+isCamera :: Container -> Bool
+isCamera (Container _ (Camera _ _)) = True
+isCamera _ = False
+
+isLight :: Container -> Bool
+isLight (Container _ (Light _)) = True
+isLight _ = False
+
+isShape :: Container -> Bool
+isShape (Container _ (Shape _ _)) = True
+isShape _ = False
+
+raytrace :: Scene -> Int -> Int -> Color
+raytrace (Scene containers config) x y =
     let
-      backgroundColor = defaultColor config
-      ray =  generateRay camera (sceneWidth config) (sceneHeight config) x y
-      intersection = closestIntersection ray objects
+        backgroundColor = defaultColor config
+        camera = head $ filter isCamera containers
+        ray = generateRay camera (sceneWidth config) (sceneHeight config) x y
+        intersection = getIntersection ray containers
     in
-        case intersection of 
+        case intersection of
             Nothing -> backgroundColor
-            (Just intersectionObj@(direction,object)) -> 
-                getColorFromIntersection object backgroundColor ray lights objects intersectionObj
+            (Just intersectionContainer) -> getColorFromIntersection intersectionContainer containers ray backgroundColor
 
-isLightVisible :: [Object] -> Vector -> Light -> Bool
-isLightVisible objects point light = isLightVisible' objects point light True
-
-isLightVisible' [] point light acc = acc
-isLightVisible' (object@(Object shape material):objects) point light@(PointLight center _) True = 
-    let 
-        direction = normalize $ center `sub` point
-        intersection = minIntersection (Ray point direction) object
-        recursiveCall = isLightVisible' objects point light
-    in
-        maybe (recursiveCall True) (\(distance,_) -> (distance < 0)) intersection
-
-getColorFromIntersection :: Object -> Color -> Ray -> [Light] -> [Object] -> (Double, Object) -> Color
-getColorFromIntersection currentObject defaultColor ray lights objects (hitDistance , Object shape (Material color)) = 
-    let 
-        hitPoint = pointAlongRay ray hitDistance 
-        otherObjects = filter (/= currentObject) objects 
-        pointHitsLight = isLightVisible otherObjects hitPoint
-        dimmedLights = map 
-                (\light -> 
-                    if pointHitsLight light 
-                    then light 
-                    else PointLight (center light) (0.15 * intensity light)) lights
-    in
-        lambertColor hitPoint color shape lights 
-
--- Should also include light color
-lambertColor :: Vector -> Color -> Shape -> [Light] -> Color
-lambertColor hitPoint color shape lights = 
-    let normal = normalAtPoint hitPoint shape
-        lIntensity = totalLambertIntensity hitPoint normal lights
-    in lIntensity `scalarMult` color
-
-pointAlongRay :: Ray -> Double -> Vector
-pointAlongRay ray distance = origin ray `add` (distance `scalarMult` direction ray)
-
-normalAtPoint :: Vector -> Shape -> Vector
-normalAtPoint point (Sphere center radius) = normalize (point `sub` center)
-normalAtPoint point (Plane center normal) = normal
-
-totalLambertIntensity :: Vector -> Vector -> [Light] -> Double
-totalLambertIntensity point normal lights =
-    sum $ map (lambertIntensity point normal) lights
-
-lambertIntensity :: Vector -> Vector -> Light -> Double
-lambertIntensity point normal (PointLight center intensity) = 
-    let lightDirection = normalize $ center `sub` point
-    in intensity * max 0 (normal `dot` lightDirection)
-
-
--- Generating rays, assuming distance to the image is 1 unit
-generateRay :: Camera -> Int -> Int -> Int -> Int -> Ray
-generateRay camera width height x y =
+generateRay :: Container -> Int -> Int -> Int -> Int -> Ray
+generateRay container@(Container center (Camera fov lookAt)) width height x y =
     let
-         -- Vector from camera to lookAt point
-        centerVector = eyeVector camera
-        -- Vector in local right direction
+        w = fromIntegral width
+        h = fromIntegral height
+        centerVector = eyeVector container
         rightVector = normalize (centerVector `cross` Vector 0 1 0)
         upVector = normalize (rightVector `cross` centerVector)
-        -- Halves are taken to make right angles
-        halfFov = fov camera / 2
-        -- This aspect ratio will be used, but are not the width and height of the camera
+        halfFov = fov / 2
         aspectRatio = h / w
         halfWidth = tan $ degreesToRadians halfFov
         halfHeight = aspectRatio * halfWidth
@@ -152,28 +91,33 @@ generateRay camera width height x y =
         cameraHeight = halfHeight * 2
         pixelWidth = cameraWidth / (w - 1)
         pixelHeight = cameraHeight / (h - 1)
-        scaledX = ((fromIntegral x * pixelWidth) - halfWidth)  `scalarMult` rightVector
-        scaledY = ((fromIntegral y * pixelHeight) - halfHeight) `scalarMult`  upVector
+        scaledX = ((fromIntegral x * pixelWidth) - halfWidth) `scalarMult` rightVector
+        scaledY = ((fromIntegral y * pixelHeight) - halfHeight) `scalarMult` upVector
         orientation = normalize $ centerVector `add` scaledX `add` scaledY
-    in  Ray (cameraPosition camera) orientation
-    where w = fromIntegral width
-          h = fromIntegral height
+    in
+        Ray center orientation
 
-closestIntersection :: Ray -> [Object] -> Maybe (Double, Object)
-closestIntersection ray objects
+eyeVector :: Container-> Vector
+eyeVector (Container center (Camera fov lookAt)) = normalize $ lookAt `sub` center
+
+-- Intersections
+
+getIntersection :: Ray -> [Container] -> Maybe (Double, Container)
+getIntersection ray containers
     | null intersections = Nothing
     | otherwise = Just $ minimumBy minimumDefinedByFirst intersections
-    where intersections = mapMaybe (minIntersection ray) objects
+    where intersections = mapMaybe (closestIntersection ray) containers
 
-minimumDefinedByFirst :: (Double, Object) -> (Double,Object) -> Ordering
+minimumDefinedByFirst :: (Double, Container) -> (Double, Container) -> Ordering
 minimumDefinedByFirst  x y
     | fst x < fst y = LT
     | fst x > fst y = GT
     | otherwise = EQ
 
--- Minimum distance intersection
-minIntersection :: Ray -> Object -> Maybe (Double, Object)
-minIntersection ray@(Ray origin direction) object@(Object (Sphere center radius) _) =
+closestIntersection:: Ray -> Container -> Maybe (Double, Container)
+closestIntersection _ (Container _ (Light _)) = Nothing
+closestIntersection _ (Container _ (Camera _ _)) = Nothing
+closestIntersection ray@(Ray origin direction) container@(Container center (Shape (Sphere radius) _)) =
     let
         l = origin `sub` center
         a = direction `dot` direction
@@ -185,37 +129,67 @@ minIntersection ray@(Ray origin direction) object@(Object (Sphere center radius)
     in
         case listOfRoots of
             [] -> Nothing
-            otherwise -> Just (min, object)
-minIntersection ray@(Ray origin direction) object@(Object (Plane center normal) _) =
+            otherwise -> Just (min, container)
+closestIntersection ray@(Ray origin direction) container@(Container center (Shape (Plane normal) _)) =
     let 
         distance = ((center `sub` origin) `dot` normal) / (direction `dot` normal)
         point = pointAlongRay ray distance
-    in if distance < 0 then Nothing else Just (distance, object)
+    in 
+        if distance < 0 then Nothing else Just (distance, container)
+
+pointAlongRay :: Ray -> Double -> Vector
+pointAlongRay ray distance = origin ray `add` (distance `scalarMult` direction ray)
+
+-- Lambertian Lighting
+
+getColorFromIntersection :: (Double, Container) -> [Container] -> Ray -> Color -> Color
+getColorFromIntersection (hitDistance, hitContainer@(Container center (Shape geometry material))) containers ray backgroundColor = 
+    let
+        hitPoint = pointAlongRay ray hitDistance
+        otherContainers = filter (/= hitContainer) containers
+        visibleLights = getVisibleLights hitPoint otherContainers
+    in
+        lambertColor hitPoint material hitContainer visibleLights
+
+getVisibleLights :: Vector -> [Container] -> [Container]
+getVisibleLights point containers = getVisibleLights' point (filter isLight containers) (filter isShape containers)
+
+getVisibleLights' :: Vector -> [Container] -> [Container] -> [Container] 
+getVisibleLights' _ lights [] = lights
+getVisibleLights' point lights shapes = filter (isLightVisible point shapes) lights
+
+isLightVisible :: Vector -> [Container] -> Container -> Bool
+isLightVisible _ [] _ = True
+isLightVisible point (shape:xs) lightContainer@(Container lightCenter _) =
+    let
+        direction = normalize $ lightCenter `sub` point
+        intersection = closestIntersection (Ray point direction) shape
+    in
+        maybe (isLightVisible point xs lightContainer) (const False) intersection
+
+lambertColor :: Vector -> Material -> Container -> [Container] -> Color
+lambertColor point (Material color) shape lights =
+    let 
+        normal = normalAtPoint point shape
+        lValue = totalLambertValue point normal lights
+    in 
+        lValue `scalarMult` color
+        
+normalAtPoint :: Vector -> Container -> Vector
+normalAtPoint point (Container center (Shape (Sphere _) _)) = normalize (point `sub` center)
+normalAtPoint point (Container _ (Shape (Plane normal ) _)) = normal
+        
+totalLambertValue :: Vector -> Vector -> [Container] -> Double
+totalLambertValue point normal lights = sum $ map (lambertValue point normal) lights
+
+lambertValue :: Vector -> Vector -> Container -> Double
+lambertValue point normal (Container center (Light (PointLight intensity))) =
+    let lightDirection = normalize $ center `sub` point
+    in intensity * max 0 (normal `dot` lightDirection)
 
 -- Transformations
-rotateObj :: Vector -> Double -> Object -> Object
-rotateObj axis angle (Object shape material) = Object (rotateShape axis angle shape) material
+rotateAroundPoint :: Vector -> Vector -> Double -> Container -> Container
+rotateAroundPoint point axis angle (Container center object) = Container (rotateAroundAxis point axis angle center) object
 
-rotateObjAroundPoint :: Vector -> Vector -> Double -> Object -> Object
-rotateObjAroundPoint point axis angle (Object shape material) = Object (rotateShapeAroundPoint point axis angle shape) material
-
-rotateShapeAroundPoint :: Vector -> Vector -> Double -> Shape -> Shape
-rotateShapeAroundPoint point axis angle shape = translateShape point (rotateShape axis angle (translateShape (neg point) shape))
-
-rotateShape :: Vector -> Double -> Shape -> Shape
-rotateShape axis angle (Sphere center radius) = Sphere (rotate axis angle center) radius
-rotateShape axis angle (Plane center normal) = Plane (rotate axis angle center) normal
-
-translateObj :: Vector -> Object -> Object
-translateObj translationVector (Object shape material) = Object (translateShape translationVector shape) material
-
-translateShape :: Vector -> Shape -> Shape
-translateShape translationVector (Sphere center radius) = Sphere (center `add` translationVector) radius
-translateShape translationVector (Plane center normal) = Plane (center `add` translationVector) normal
-
-scaleObj :: Object -> Double -> Object
-scaleObj (Object shape material) factor = Object (scaleShape factor shape) material
-
-scaleShape :: Double -> Shape -> Shape
-scaleShape factor (Sphere center radius) = Sphere center (factor * radius)
-scaleShape factor shape = shape
+rotateAroundAxis :: Vector -> Vector -> Double -> Vector -> Vector
+rotateAroundAxis point axis angle vector = point `add` rotate axis angle (vector `sub` point)
