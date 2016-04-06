@@ -15,6 +15,7 @@
 module Main where
 
 import Vector
+import Quaternion
 import Color
 import Camera
 import Utils (degreesToRadians, roots)
@@ -69,10 +70,6 @@ main =
     img = generateImage (\x y -> pixelRGB8 $ Main.trace scene x (sceneHeight config - y)) (sceneWidth config) (sceneHeight config)
    in
     writePng "output.png" img
-
-rotateObj :: Vector -> Double -> Object -> Object
-rotateObj  axis angle (Object (Sphere center radius) material) = Object (Sphere (rotate axis angle center) radius) material
-rotateObj axis angle (Object (Plane center normal) material) = Object (Plane (rotate axis angle center) normal) material
 
 trace :: Scene -> Int -> Int -> Color
 trace (Scene objects lights camera config) x y =
@@ -149,7 +146,7 @@ generateRay camera width height x y =
         halfFov = fov camera / 2
         -- This aspect ratio will be used, but are not the width and height of the camera
         aspectRatio = h / w
-        halfWidth = tan $ Utils.degreesToRadians halfFov
+        halfWidth = tan $ degreesToRadians halfFov
         halfHeight = aspectRatio * halfWidth
         cameraWidth = halfWidth * 2
         cameraHeight = halfHeight * 2
@@ -194,3 +191,31 @@ minIntersection ray@(Ray origin direction) object@(Object (Plane center normal) 
         distance = ((center `sub` origin) `dot` normal) / (direction `dot` normal)
         point = pointAlongRay ray distance
     in if distance < 0 then Nothing else Just (distance, object)
+
+-- Transformations
+rotateObj :: Vector -> Double -> Object -> Object
+rotateObj axis angle (Object shape material) = Object (rotateShape axis angle shape) material
+
+rotateObjAroundPoint :: Vector -> Vector -> Double -> Object -> Object
+rotateObjAroundPoint point axis angle (Object shape material) = Object (rotateShapeAroundPoint point axis angle shape) material
+
+rotateShapeAroundPoint :: Vector -> Vector -> Double -> Shape -> Shape
+rotateShapeAroundPoint point axis angle shape = translateShape point (rotateShape axis angle (translateShape (neg point) shape))
+
+rotateShape :: Vector -> Double -> Shape -> Shape
+rotateShape axis angle (Sphere center radius) = Sphere (rotate axis angle center) radius
+rotateShape axis angle (Plane center normal) = Plane (rotate axis angle center) normal
+
+translateObj :: Vector -> Object -> Object
+translateObj translationVector (Object shape material) = Object (translateShape translationVector shape) material
+
+translateShape :: Vector -> Shape -> Shape
+translateShape translationVector (Sphere center radius) = Sphere (center `add` translationVector) radius
+translateShape translationVector (Plane center normal) = Plane (center `add` translationVector) normal
+
+scaleObj :: Object -> Double -> Object
+scaleObj (Object shape material) factor = Object (scaleShape factor shape) material
+
+scaleShape :: Double -> Shape -> Shape
+scaleShape factor (Sphere center radius) = Sphere center (factor * radius)
+scaleShape factor shape = shape
