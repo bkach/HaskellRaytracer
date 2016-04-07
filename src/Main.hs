@@ -84,16 +84,13 @@ trace (Scene objects lights camera config) x y =
                 getColorFromIntersection backgroundColor ray lights objects intersectionObj
 
 isLightVisible :: [Object] -> Vector -> Light -> Bool
-isLightVisible objects point light = isLightVisible' objects point light True
-
-isLightVisible' [] point light acc = acc
-isLightVisible' (object@(Object shape material):objects) point light@(PointLight center _) True = 
-    let 
-        direction = normalize $ center `sub` point
-        intersection = minIntersection (Ray point direction) object
-        recursiveCall = isLightVisible' objects point light
+isLightVisible objects point light =
+    let
+        direction = normalize $ (center light) `sub` point
+        ray = Ray point direction
+        objIntersections = fmap (minIntersection ray) objects
     in
-        maybe (recursiveCall True) (\(distance,_) -> (distance < 0)) intersection
+        all isNothing objIntersections
 
 getColorFromIntersection :: Color -> Ray -> [Light] -> [Object] -> (Double, Object) -> Color
 getColorFromIntersection defaultColor ray lights objects (hitDistance , hitObject) =
@@ -105,10 +102,12 @@ getColorFromIntersection defaultColor ray lights objects (hitDistance , hitObjec
         lambertColor hitPoint hitObject visibleLights
 
 -- Should also include light color
-lambertColor :: Vector -> Color -> Shape -> [Light] -> Color
-lambertColor hitPoint color shape lights = 
-    let normal = normalAtPoint hitPoint shape
-        lIntensity = totalLambertIntensity hitPoint normal lights
+lambertColor :: Vector -> Object -> [Light] -> Color
+lambertColor hitPoint (Object shape (Material color)) lights =
+    let
+        normal = normalAtPoint hitPoint shape
+        lightLamberts = fmap (\l -> (lambertIntensity hitPoint normal l, l)) lights
+        lIntensity = sum $ fmap fst lightLamberts
     in lIntensity `scalarMult` color
 
 pointAlongRay :: Ray -> Double -> Vector
@@ -118,12 +117,8 @@ normalAtPoint :: Vector -> Shape -> Vector
 normalAtPoint point (Sphere center radius) = normalize (point `sub` center)
 normalAtPoint point (Plane center normal) = normal
 
-totalLambertIntensity :: Vector -> Vector -> [Light] -> Double
-totalLambertIntensity point normal lights =
-    sum $ map (lambertIntensity point normal) lights
-
 lambertIntensity :: Vector -> Vector -> Light -> Double
-lambertIntensity point normal (PointLight center intensity) = 
+lambertIntensity point normal (PointLight center intensity) =
     let lightDirection = normalize $ center `sub` point
     in intensity * max 0 (normal `dot` lightDirection)
 
@@ -154,8 +149,8 @@ generateRay camera width height x y =
     where w = fromIntegral width
           h = fromIntegral height
 
-closestIntersection :: Ray -> [Object] -> Maybe (Double, Object)
-closestIntersection ray objects
+closestObject :: Ray -> [Object] -> Maybe (Double, Object)
+closestObject ray objects
     | null intersections = Nothing
     | otherwise = Just $ minimumBy minimumDefinedByFirst intersections
     where intersections = mapMaybe (minIntersection ray) objects
@@ -182,7 +177,7 @@ minIntersection ray@(Ray origin direction) object@(Object (Sphere center radius)
             [] -> Nothing
             otherwise -> Just (min, object)
 minIntersection ray@(Ray origin direction) object@(Object (Plane center normal) _) =
-    let 
+    let
         distance = ((center `sub` origin) `dot` normal) / (direction `dot` normal)
         point = pointAlongRay ray distance
     in if distance < 0 then Nothing else Just (distance, object)
