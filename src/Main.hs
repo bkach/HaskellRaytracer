@@ -78,10 +78,10 @@ trace (Scene objects lights camera config) x y =
       ray =  generateRay camera (sceneWidth config) (sceneHeight config) x y
       maybeIntersectedObject = closestObject ray objects
     in
-        case maybeIntersectedObject of 
+        case maybeIntersectedObject of
             Nothing -> backgroundColor
-            (Just intersectionObj@(direction,object)) -> 
-                getColorFromIntersection object backgroundColor ray lights objects intersectionObj
+            (Just intersectionObj@(_,object)) ->
+                getColorFromIntersection backgroundColor ray lights objects intersectionObj
 
 isLightVisible :: [Object] -> Vector -> Light -> Bool
 isLightVisible objects point light = isLightVisible' objects point light True
@@ -95,19 +95,14 @@ isLightVisible' (object@(Object shape material):objects) point light@(PointLight
     in
         maybe (recursiveCall True) (\(distance,_) -> (distance < 0)) intersection
 
-getColorFromIntersection :: Object -> Color -> Ray -> [Light] -> [Object] -> (Double, Object) -> Color
-getColorFromIntersection currentObject defaultColor ray lights objects (hitDistance , Object shape (Material color)) = 
-    let 
-        hitPoint = pointAlongRay ray hitDistance 
-        otherObjects = filter (/= currentObject) objects 
-        pointHitsLight = isLightVisible otherObjects hitPoint
-        dimmedLights = map 
-                (\light -> 
-                    if pointHitsLight light 
-                    then light 
-                    else PointLight (center light) (0.15 * intensity light)) lights
+getColorFromIntersection :: Color -> Ray -> [Light] -> [Object] -> (Double, Object) -> Color
+getColorFromIntersection defaultColor ray lights objects (hitDistance , hitObject) =
+    let
+        hitPoint = pointAlongRay ray hitDistance
+        otherObjects = filter (/= hitObject) objects
+        visibleLights = filter (isLightVisible otherObjects hitPoint) lights
     in
-        lambertColor hitPoint color shape lights 
+        lambertColor hitPoint hitObject visibleLights
 
 -- Should also include light color
 lambertColor :: Vector -> Color -> Shape -> [Light] -> Color
