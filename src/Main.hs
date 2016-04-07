@@ -76,9 +76,9 @@ trace (Scene objects lights camera config) x y =
     let
       backgroundColor = defaultColor config
       ray =  generateRay camera (sceneWidth config) (sceneHeight config) x y
-      intersection = closestIntersection ray objects
+      maybeIntersectedObject = closestObject ray objects
     in
-        case intersection of 
+        case maybeIntersectedObject of 
             Nothing -> backgroundColor
             (Just intersectionObj@(direction,object)) -> 
                 getColorFromIntersection object backgroundColor ray lights objects intersectionObj
