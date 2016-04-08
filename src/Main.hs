@@ -49,7 +49,7 @@ main =
     lights = [PointLight (Vector 0 0.5 0) 0.4, PointLight (Vector 0.5 0.5 0) 0.4, PointLight (Vector 9 0 4) 0.2]
 
     camera :: Camera
-    camera = Camera 45 (Vector 0 0 0) (Vector 0 0 1)
+    camera = rotateCamera (Vector 0 0 3) (Vector 0 1 0) (-90) (Camera 45 (Vector 0 0 (-1)) (Vector 0 0 3))
 
     config = Config 500 500 Color.white
 

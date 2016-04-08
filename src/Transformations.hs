@@ -3,16 +3,22 @@ module Transformations where
 import DataTypes
 import Vector
 import Quaternion
+import Camera
 
 -- Transformations
-rotateObj :: Vector -> Double -> Object -> Object
-rotateObj axis angle (Object shape material) = Object (rotateShape axis angle shape) material
+rotateCamera :: Vector -> Vector -> Double -> Camera -> Camera
+rotateCamera point axis angle (Camera fov center lookingAt) = 
+    let
+        newCenter = point `add` rotate axis angle (center `sub` point)
+    in
+        Camera fov newCenter lookingAt
 
-rotateObjAroundPoint :: Vector -> Vector -> Double -> Object -> Object
-rotateObjAroundPoint point axis angle (Object shape material) = Object (rotateShapeAroundPoint point axis angle shape) material
-
-rotateShapeAroundPoint :: Vector -> Vector -> Double -> Shape -> Shape
-rotateShapeAroundPoint point axis angle shape = translateShape point (rotateShape axis angle (translateShape (neg point) shape))
+rotateObj :: Vector -> Vector -> Double -> Object -> Object
+rotateObj point axis angle (Object shape material) = 
+    let
+        rotatedShape = translateShape point (rotateShape axis angle (translateShape (neg point) shape))
+    in
+        Object rotatedShape material
 
 rotateShape :: Vector -> Double -> Shape -> Shape
 rotateShape axis angle (Sphere center radius) = Sphere (rotate axis angle center) radius
@@ -24,6 +30,9 @@ translateObj translationVector (Object shape material) = Object (translateShape 
 translateShape :: Vector -> Shape -> Shape
 translateShape translationVector (Sphere center radius) = Sphere (center `add` translationVector) radius
 translateShape translationVector (Plane center normal) = Plane (center `add` translationVector) normal
+
+translateCamera :: Vector -> Camera -> Camera
+translateCamera translationVector (Camera fov center lookAt) = Camera fov (center `add` translationVector) lookAt
 
 scaleObj :: Object -> Double -> Object
 scaleObj (Object shape material) factor = Object (scaleShape factor shape) material
