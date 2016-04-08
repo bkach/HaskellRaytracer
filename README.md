@@ -2,6 +2,6 @@
 
 A simple raycaster written in Haskell
 
-Below is an example input with three spheres, a plane, and two point lights.
+Below is an example input with two spheres, two planes, and three point lights.
 
 ![](images/front.png)![](images/side.png)
