@@ -91,7 +91,7 @@ isLightVisible objects point light =
         ray = Ray point direction
         objIntersections = mapMaybe (minIntersection ray) objects
     in
-        all ((\x -> x >= distanceToLight || x < 0) . fst) objIntersections
+        all ((>= distanceToLight) . fst) objIntersections
 
 -- Should also include light color
 lambertColor :: Vector -> Object -> [Light] -> Color
@@ -167,7 +167,7 @@ minIntersection ray@(Ray origin direction) object@(Object (Sphere center radius)
     in
         case listOfRoots of
             [] -> Nothing
-            otherwise -> Just (min, object)
+            otherwise -> if min < 0 then Nothing else Just (min, object)
 minIntersection ray@(Ray origin direction) object@(Object (Plane center normal) _) =
     let
         distance = ((center `sub` origin) `dot` normal) / (direction `dot` normal)
