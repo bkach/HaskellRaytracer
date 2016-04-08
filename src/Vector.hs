@@ -1,6 +1,6 @@
 module Vector where
 
-data Vector = Vector Double Double Double deriving(Show, Eq)
+data Vector = Vector {x :: Double, y :: Double, z :: Double} deriving(Eq, Show)
 type Point = Vector
 
 -- Helper Functions
@@ -18,7 +18,7 @@ dot :: Vector -> Vector -> Double
 (Vector x y z) `dot` (Vector x1 y1 z1) = x * x1 + y * y1 + z * z1
 
 cross :: Vector -> Vector -> Vector
-(Vector x y z) `cross` (Vector x1 y1 z1) = Vector (y * z1 + z *y1) (x * z1 + y * x1) (x * y1 + y * x1)
+(Vector x y z) `cross` (Vector x1 y1 z1) = Vector (y * z1 - z * y1) (z * x1 - x * z1) (x * y1 - y * x1)
 
 normalize :: Vector -> Vector
 normalize (Vector x y z) = let m = magnitude (Vector x y z)
@@ -29,4 +29,3 @@ magnitude (Vector x y z) = sqrt (x * x + y * y + z * z)
 
 neg :: Vector -> Vector
 neg = scalarMult (-1)
-

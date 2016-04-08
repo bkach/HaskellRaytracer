@@ -14,66 +14,106 @@
 --
 module Main where
 
+import DataTypes
 import Vector
+import Quaternion
 import Color
 import Camera
+import Transformations
 import Utils (degreesToRadians, roots)
 import Codec.Picture
 import Codec.Picture.Png
 import Data.Maybe
 import Data.List
-
--- Basic Data Types
-data Object = Object Shape Material
-data Material = Material Color
-data Shape = Sphere Vector Double
---           | Plane Vector Vector
---           | Triangle Vector Vector Vector
-            deriving (Show, Eq)
-data Light = PointLight Vector
-data Scene = Scene [Object] [Light] Camera Config
-data Config = Config { sceneWidth :: Int,
-                       sceneHeight :: Int,
-                       defaultColor :: Color }
-
-data Ray = Ray {origin :: Vector, direction :: Vector}
+import Debug.Trace
 
 main :: IO()
 main =
   let
     objects :: [Object]
     objects = [Object
-                    (Sphere (Vector (-3) 3.5 (-8)) 3)
+                    (Sphere (Vector (-0.5) 0 2) 0.5)
                     (Material Color.red),
                Object
-                    (Sphere (Vector 1.5 3.5 (-6)) 3)
-                    (Material Color.green)]
+                    (Sphere (Vector 0 0 3) 0.5)
+                    (Material Color.blue),
+               Object
+                    (Plane (Vector 0 (-0.5) 0) (Vector 0 1 0))
+                    (Material Color.pink),
+               Object
+                    (Plane (Vector 0 0 5) (Vector 0 0 (-1)))
+                    (Material Color.pink)
+              ]
 
     lights :: [Light]
-    lights = [PointLight (Vector (-30) (-10) 20) ]
+    lights = [PointLight (Vector 0 0.5 0) 0.4, PointLight (Vector 0.5 0.5 0) 0.4, PointLight (Vector 9 0 4) 0.2]
 
     camera :: Camera
-    camera = Camera 45 (Vector 0 1.8 10) (Vector 0 3 0)
+    camera = rotateCamera (Vector 0 0 3) (Vector 0 1 0) (-90) (Camera 45 (Vector 0 0 (-1)) (Vector 0 0 3))
 
     config = Config 500 500 Color.white
 
     scene :: Scene
     scene = Scene objects lights camera config
 
-    img = generateImage (\x y -> pixelRGB8 $ Main.trace scene x y) (sceneWidth config) (sceneHeight config)
+    img = generateImage (\x y -> pixelRGB8 $ Main.trace scene (sceneWidth config - x) (sceneHeight config - y)) (sceneWidth config) (sceneHeight config)
    in
     writePng "output.png" img
 
 trace :: Scene -> Int -> Int -> Color
 trace (Scene objects lights camera config) x y =
     let
+      backgroundColor = defaultColor config
       ray =  generateRay camera (sceneWidth config) (sceneHeight config) x y
-      intersections = closestIntersection ray objects
+      maybeIntersectedObject = closestObject ray objects
     in
-      maybe Color.white getColorFromIntersection intersections
+        case maybeIntersectedObject of
+            Nothing -> backgroundColor
+            Just intersectionObj  ->
+                getColorFromIntersection backgroundColor ray lights objects intersectionObj
 
-getColorFromIntersection :: (Double, Object) -> Color
-getColorFromIntersection ( _ , Object _ (Material color)) = color
+
+getColorFromIntersection :: Color -> Ray -> [Light] -> [Object] -> (Double, Object) -> Color
+getColorFromIntersection defaultColor ray lights objects (hitDistance, hitObject) =
+    let
+        hitPoint = pointAlongRay ray hitDistance
+        otherObjects = filter (/= hitObject) objects
+        visibleLights = filter (isLightVisible otherObjects hitPoint) lights
+    in
+        lambertColor hitPoint hitObject visibleLights
+
+isLightVisible :: [Object] -> Vector -> Light -> Bool
+isLightVisible objects point light =
+    let
+        toLightVector = center light `sub` point
+        distanceToLight = magnitude toLightVector
+        direction = normalize toLightVector
+        ray = Ray point direction
+        objIntersections = mapMaybe (minIntersection ray) objects
+    in
+        all ((\x -> x >= distanceToLight || x < 0) . fst) objIntersections
+
+-- Should also include light color
+lambertColor :: Vector -> Object -> [Light] -> Color
+lambertColor hitPoint (Object shape (Material color)) lights =
+    let
+        normal = normalAtPoint hitPoint shape
+        lightLamberts = fmap (\l -> (lambertIntensity hitPoint normal l, l)) lights
+        lIntensity = sum $ fmap fst lightLamberts
+    in lIntensity `scalarMult` color
+
+pointAlongRay :: Ray -> Double -> Vector
+pointAlongRay ray distance = origin ray `add` (distance `scalarMult` direction ray)
+
+normalAtPoint :: Vector -> Shape -> Vector
+normalAtPoint point (Sphere center radius) = normalize (point `sub` center)
+normalAtPoint point (Plane center normal) = normal
+
+lambertIntensity :: Vector -> Vector -> Light -> Double
+lambertIntensity point normal (PointLight center intensity) =
+    let lightDirection = normalize $ center `sub` point
+    in intensity * max 0 (normal `dot` lightDirection)
+
 
 -- Generating rays, assuming distance to the image is 1 unit
 generateRay :: Camera -> Int -> Int -> Int -> Int -> Ray
@@ -101,8 +141,8 @@ generateRay camera width height x y =
     where w = fromIntegral width
           h = fromIntegral height
 
-closestIntersection :: Ray -> [Object] -> Maybe (Double, Object)
-closestIntersection ray objects
+closestObject :: Ray -> [Object] -> Maybe (Double, Object)
+closestObject ray objects
     | null intersections = Nothing
     | otherwise = Just $ minimumBy minimumDefinedByFirst intersections
     where intersections = mapMaybe (minIntersection ray) objects
@@ -115,14 +155,21 @@ minimumDefinedByFirst  x y
 
 -- Minimum distance intersection
 minIntersection :: Ray -> Object -> Maybe (Double, Object)
-minIntersection (Ray origin direction) object@(Object (Sphere center radius) material) =
+minIntersection ray@(Ray origin direction) object@(Object (Sphere center radius) _) =
     let
         l = origin `sub` center
         a = direction `dot` direction
         b = 2 * (direction `dot` l)
         c =  (l `dot` l) - radius^2
         listOfRoots = roots a b c
+        min = minimum listOfRoots
+        point = pointAlongRay ray min
     in
         case listOfRoots of
             [] -> Nothing
-            otherwise -> Just (minimum listOfRoots, object)
+            otherwise -> Just (min, object)
+minIntersection ray@(Ray origin direction) object@(Object (Plane center normal) _) =
+    let
+        distance = ((center `sub` origin) `dot` normal) / (direction `dot` normal)
+        point = pointAlongRay ray distance
+    in if distance < 0 then Nothing else Just (distance, object)
