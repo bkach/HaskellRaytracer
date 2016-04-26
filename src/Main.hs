@@ -22,7 +22,7 @@ import Quaternion
 import Color
 import Camera
 import Transformations
-import Utils (degreesToRadians, roots)
+import Utils (degreesToRadians)
 import Codec.Picture
 import Codec.Picture.Png
 import Data.Maybe
@@ -91,9 +91,10 @@ isLightVisible objects point light =
         distanceToLight = magnitude toLightVector
         direction = normalize toLightVector
         ray = Ray point direction
-        objIntersections = mapMaybe (minIntersection ray) objects
+        shapes = map (\(Object shape _) -> shape) objects
+        objIntersections = mapMaybe (rayIntersection ray) shapes
     in
-        all ((>= distanceToLight) . fst) objIntersections
+        all (>= distanceToLight) objIntersections
 
 -- Should also include light color
 lambertColor :: Vector -> Object -> [Light] -> Color
@@ -106,10 +107,6 @@ lambertColor hitPoint (Object shape (Material color)) lights =
 
 pointAlongRay :: Ray -> Double -> Vector
 pointAlongRay ray distance = origin ray `add` (distance `scalarMult` direction ray)
-
-normalAtPoint :: Vector -> Shape -> Vector
-normalAtPoint point (Sphere center radius) = normalize (point `sub` center)
-normalAtPoint point (Plane center normal) = normal
 
 lambertIntensity :: Vector -> Vector -> Light -> Double
 lambertIntensity point normal (PointLight center intensity) =
@@ -144,10 +141,17 @@ generateRay camera width height x y =
           h = fromIntegral height
 
 closestObject :: Ray -> [Object] -> Maybe (Double, Object)
-closestObject ray objects
-    | null intersections = Nothing
-    | otherwise = Just $ minimumBy minimumDefinedByFirst intersections
-    where intersections = mapMaybe (minIntersection ray) objects
+closestObject ray objects =
+  let
+    intersections = mapMaybe intersectLambda objects
+  in
+    if null intersections then
+      Nothing
+    else
+      Just $ minimumBy minimumDefinedByFirst intersections
+  where
+    intersectLambda :: Object -> Maybe (Double, Object)
+    intersectLambda obj@(Object s _) = fmap (\i -> (i, obj)) (rayIntersection ray s)
 
 minimumDefinedByFirst :: (Double, Object) -> (Double,Object) -> Ordering
 minimumDefinedByFirst  x y
@@ -155,23 +159,3 @@ minimumDefinedByFirst  x y
     | fst x > fst y = GT
     | otherwise = EQ
 
--- Minimum distance intersection
-minIntersection :: Ray -> Object -> Maybe (Double, Object)
-minIntersection ray@(Ray origin direction) object@(Object (Sphere center radius) _) =
-    let
-        l = origin `sub` center
-        a = direction `dot` direction
-        b = 2 * (direction `dot` l)
-        c =  (l `dot` l) - radius^2
-        listOfRoots = roots a b c
-        min = minimum listOfRoots
-        point = pointAlongRay ray min
-    in
-        case listOfRoots of
-            [] -> Nothing
-            otherwise -> if min < 0 then Nothing else Just (min, object)
-minIntersection ray@(Ray origin direction) object@(Object (Plane center normal) _) =
-    let
-        distance = ((center `sub` origin) `dot` normal) / (direction `dot` normal)
-        point = pointAlongRay ray distance
-    in if distance < 0 then Nothing else Just (distance, object)
