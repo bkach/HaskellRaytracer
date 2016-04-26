@@ -3,6 +3,7 @@ module DataTypes where
 import Vector
 import Camera
 import Color
+import Ray
 
 -- Basic Data Types
 data Object = Object Shape Material deriving(Eq)
@@ -14,4 +15,3 @@ data Scene = Scene [Object] [Light] Camera Config
 data Config = Config { sceneWidth :: Int,
                        sceneHeight :: Int,
                        defaultColor :: Color }
-data Ray = Ray {origin :: Vector, direction :: Vector}
