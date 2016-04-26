@@ -1,6 +1,7 @@
 module Transformations where
 
 import DataTypes
+import Shapes
 import Vector
 import Quaternion
 import Camera

@@ -15,6 +15,7 @@
 module Main where
 
 import DataTypes
+import Shapes
 import Ray
 import Vector
 import Quaternion
