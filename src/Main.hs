@@ -32,7 +32,6 @@ import Debug.Trace
 main :: IO()
 main =
   let
-    objects :: [Object]
     objects = [Object
                     (Sphere (Vector (-0.5) 0 2) 0.5)
                     (Material Color.red),
@@ -47,15 +46,12 @@ main =
                     (Material Color.pink)
               ]
 
-    lights :: [Light]
     lights = [PointLight (Vector 0 0.5 0) 0.4, PointLight (Vector 0.5 0.5 0) 0.4, PointLight (Vector 9 0 4) 0.2]
 
-    camera :: Camera
     camera = rotateCamera (Vector 0 0 3) (Vector 0 1 0) (-90) (Camera 45 (Vector 0 0 (-1)) (Vector 0 0 3))
 
     config = Config 500 500 Color.white
 
-    scene :: Scene
     scene = Scene objects lights camera config
 
     img = generateImage (\x y -> pixelRGB8 $ Main.trace scene (sceneWidth config - x) (sceneHeight config - y)) (sceneWidth config) (sceneHeight config)
