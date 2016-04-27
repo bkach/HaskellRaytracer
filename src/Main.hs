@@ -105,9 +105,6 @@ lambertColor hitPoint (Object shape (Material color)) lights =
         lIntensity = sum $ fmap fst lightLamberts
     in lIntensity `scalarMult` color
 
-pointAlongRay :: Ray -> Double -> Vector
-pointAlongRay ray distance = origin ray `add` (distance `scalarMult` direction ray)
-
 lambertIntensity :: Vector -> Vector -> Light -> Double
 lambertIntensity point normal (PointLight center intensity) =
     let lightDirection = normalize $ center `sub` point
