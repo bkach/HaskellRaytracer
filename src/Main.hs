@@ -101,13 +101,13 @@ getIntersectionColor ray lights objects (hitDistance, hitObject) =
 
 isLightVisible :: [Object] -> Vector -> Light -> Bool
 isLightVisible objects point light =
- let
-   toLightVector = center light `sub` point
-   distanceToLight = magnitude toLightVector
-   direction = normalize toLightVector
-   ray = Ray point direction
-   shapes = map (\(Object shape _) -> shape) objects
-   objIntersections = mapMaybe (rayIntersection ray) shapes
+  let
+    toLightVector = center light `sub` point
+    distanceToLight = magnitude toLightVector
+    direction = normalize toLightVector
+    ray = Ray point direction
+    shapes = map (\(Object shape _) -> shape) objects
+    objIntersections = mapMaybe (rayIntersection ray) shapes
   in
     all (>= distanceToLight) objIntersections
 
