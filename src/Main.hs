@@ -61,14 +61,11 @@ main =
 trace :: Scene -> Int -> Int -> Color
 trace (Scene objects lights camera config) x y =
     let
-      backgroundColor = defaultColor config
+      bgColor = defaultColor config
       ray =  Ray.generate camera (sceneWidth config) (sceneHeight config) x y
-      maybeIntersectedObject = closestObject ray objects
+      intersectedObject = closestObject ray objects
     in
-      case maybeIntersectedObject of
-          Nothing -> backgroundColor
-          Just intersectionObj  ->
-              getColorFromIntersection ray lights objects intersectionObj
+      maybe bgColor (getIntersectionColor ray lights objects) intersectedObject
 
 closestObject :: Ray -> [Object] -> Maybe (Double, Object)
 closestObject ray objects =
@@ -88,8 +85,8 @@ closestObject ray objects =
         | fst x > fst y = GT
         | otherwise = EQ
 
-getColorFromIntersection :: Ray -> [Light] -> [Object] -> (Double, Object) -> Color
-getColorFromIntersection ray lights objects (hitDistance, hitObject) =
+getIntersectionColor :: Ray -> [Light] -> [Object] -> (Double, Object) -> Color
+getIntersectionColor ray lights objects (hitDistance, hitObject) =
     let
         hitPoint = Ray.pointAlongRay ray hitDistance
         otherObjects = filter (/= hitObject) objects
