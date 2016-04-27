@@ -65,11 +65,28 @@ trace (Scene objects lights camera config) x y =
       ray =  Ray.generate camera (sceneWidth config) (sceneHeight config) x y
       maybeIntersectedObject = closestObject ray objects
     in
-        case maybeIntersectedObject of
-            Nothing -> backgroundColor
-            Just intersectionObj  ->
-                getColorFromIntersection backgroundColor ray lights objects intersectionObj
+      case maybeIntersectedObject of
+          Nothing -> backgroundColor
+          Just intersectionObj  ->
+              getColorFromIntersection backgroundColor ray lights objects intersectionObj
 
+closestObject :: Ray -> [Object] -> Maybe (Double, Object)
+closestObject ray objects =
+  let
+    intersections = mapMaybe intersectLambda objects
+  in
+    if null intersections then
+      Nothing
+    else
+      Just $ minimumBy minimumDefinedByFirst intersections
+  where
+    intersectLambda :: Object -> Maybe (Double, Object)
+    intersectLambda obj@(Object s _) = fmap (\i -> (i, obj)) (rayIntersection ray s)
+    minimumDefinedByFirst :: (Double, Object) -> (Double,Object) -> Ordering
+    minimumDefinedByFirst  x y
+        | fst x < fst y = LT
+        | fst x > fst y = GT
+        | otherwise = EQ
 
 getColorFromIntersection :: Color -> Ray -> [Light] -> [Object] -> (Double, Object) -> Color
 getColorFromIntersection defaultColor ray lights objects (hitDistance, hitObject) =
@@ -105,23 +122,4 @@ lambertIntensity :: Vector -> Vector -> Light -> Double
 lambertIntensity point normal (PointLight center intensity) =
     let lightDirection = normalize $ center `sub` point
     in intensity * max 0 (normal `dot` lightDirection)
-
-closestObject :: Ray -> [Object] -> Maybe (Double, Object)
-closestObject ray objects =
-  let
-    intersections = mapMaybe intersectLambda objects
-  in
-    if null intersections then
-      Nothing
-    else
-      Just $ minimumBy minimumDefinedByFirst intersections
-  where
-    intersectLambda :: Object -> Maybe (Double, Object)
-    intersectLambda obj@(Object s _) = fmap (\i -> (i, obj)) (rayIntersection ray s)
-
-minimumDefinedByFirst :: (Double, Object) -> (Double,Object) -> Ordering
-minimumDefinedByFirst  x y
-    | fst x < fst y = LT
-    | fst x > fst y = GT
-    | otherwise = EQ
 
