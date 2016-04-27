@@ -16,13 +16,13 @@ module Main where
 
 import DataTypes
 import Shapes
-import Ray
+import qualified Ray
+import Ray ( Ray(..) )
 import Vector
 import Quaternion
 import Color
 import Camera
 import Transformations
-import Utils (degreesToRadians)
 import Codec.Picture
 import Codec.Picture.Png
 import Data.Maybe
@@ -66,7 +66,7 @@ trace :: Scene -> Int -> Int -> Color
 trace (Scene objects lights camera config) x y =
     let
       backgroundColor = defaultColor config
-      ray =  generateRay camera (sceneWidth config) (sceneHeight config) x y
+      ray =  Ray.generate camera (sceneWidth config) (sceneHeight config) x y
       maybeIntersectedObject = closestObject ray objects
     in
         case maybeIntersectedObject of
@@ -78,7 +78,7 @@ trace (Scene objects lights camera config) x y =
 getColorFromIntersection :: Color -> Ray -> [Light] -> [Object] -> (Double, Object) -> Color
 getColorFromIntersection defaultColor ray lights objects (hitDistance, hitObject) =
     let
-        hitPoint = pointAlongRay ray hitDistance
+        hitPoint = Ray.pointAlongRay ray hitDistance
         otherObjects = filter (/= hitObject) objects
         visibleLights = filter (isLightVisible otherObjects hitPoint) lights
     in
@@ -109,33 +109,6 @@ lambertIntensity :: Vector -> Vector -> Light -> Double
 lambertIntensity point normal (PointLight center intensity) =
     let lightDirection = normalize $ center `sub` point
     in intensity * max 0 (normal `dot` lightDirection)
-
-
--- Generating rays, assuming distance to the image is 1 unit
-generateRay :: Camera -> Int -> Int -> Int -> Int -> Ray
-generateRay camera width height x y =
-    let
-         -- Vector from camera to lookAt point
-        centerVector = eyeVector camera
-        -- Vector in local right direction
-        rightVector = normalize (centerVector `cross` Vector 0 1 0)
-        upVector = normalize (rightVector `cross` centerVector)
-        -- Halves are taken to make right angles
-        halfFov = fov camera / 2
-        -- This aspect ratio will be used, but are not the width and height of the camera
-        aspectRatio = h / w
-        halfWidth = tan $ degreesToRadians halfFov
-        halfHeight = aspectRatio * halfWidth
-        cameraWidth = halfWidth * 2
-        cameraHeight = halfHeight * 2
-        pixelWidth = cameraWidth / (w - 1)
-        pixelHeight = cameraHeight / (h - 1)
-        scaledX = ((fromIntegral x * pixelWidth) - halfWidth)  `scalarMult` rightVector
-        scaledY = ((fromIntegral y * pixelHeight) - halfHeight) `scalarMult`  upVector
-        orientation = normalize $ centerVector `add` scaledX `add` scaledY
-    in  Ray (cameraPosition camera) orientation
-    where w = fromIntegral width
-          h = fromIntegral height
 
 closestObject :: Ray -> [Object] -> Maybe (Double, Object)
 closestObject ray objects =
