@@ -8,18 +8,18 @@ import Camera
 
 -- Transformations
 rotateCamera :: Vector -> Vector -> Double -> Camera -> Camera
-rotateCamera point axis angle (Camera fov center lookingAt) = 
-    let
-        newCenter = point `add` rotate axis angle (center `sub` point)
-    in
-        Camera fov newCenter lookingAt
+rotateCamera point axis angle (Camera fov center lookingAt) =
+  let
+    newCenter = point `add` rotate axis angle (center `sub` point)
+  in
+    Camera fov newCenter lookingAt
 
 rotateObj :: Vector -> Vector -> Double -> Object -> Object
-rotateObj point axis angle (Object shape material) = 
-    let
-        rotatedShape = translateShape point (rotateShape axis angle (translateShape (neg point) shape))
-    in
-        Object rotatedShape material
+rotateObj point axis angle (Object shape material) =
+  let
+    rotatedShape = translateShape point (rotateShape axis angle (translateShape (neg point) shape))
+  in
+    Object rotatedShape material
 
 rotateShape :: Vector -> Double -> Shape -> Shape
 rotateShape axis angle (Sphere center radius) = Sphere (rotate axis angle center) radius

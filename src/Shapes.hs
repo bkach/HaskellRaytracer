@@ -8,9 +8,8 @@ data Shape = Sphere Vector Double  -- center, radius
            | Plane Vector Vector  deriving(Eq) -- center, normal
 
 normalAtPoint :: Vector -> Shape -> Vector
-normalAtPoint point (Sphere center radius) =
-  normalize (point `sub` center)
-normalAtPoint point (Plane center normal) = normal
+normalAtPoint point (Sphere center radius) = normalize (point `sub` center)
+normalAtPoint point (Plane center normal)  = normal
 
 rayIntersection :: Ray -> Shape -> Maybe Double
 rayIntersection (Ray origin direction) (Sphere center radius) =
@@ -30,8 +29,7 @@ rayIntersection (Ray origin direction) (Sphere center radius) =
                        Just min
 rayIntersection (Ray origin direction) (Plane center normal) =
   let
-    distance = ((center `sub` origin) `dot` normal)
-               / (direction `dot` normal)
+    distance = ((center `sub` origin) `dot` normal) / (direction `dot` normal)
   in
     if distance < 0 then
       Nothing

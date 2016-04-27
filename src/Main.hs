@@ -46,7 +46,12 @@ main =
                     (Material Color.pink)
               ]
 
-    lights = [PointLight (Vector 0 0.5 0) 0.4, PointLight (Vector 0.5 0.5 0) 0.4, PointLight (Vector 9 0 4) 0.2]
+    lights = [PointLight
+                (Vector 0 0.5 0) 0.4,
+              PointLight
+                (Vector 0.5 0.5 0) 0.4,
+              PointLight (Vector 9 0 4) 0.2
+             ]
 
     camera = rotateCamera (Vector 0 0 3) (Vector 0 1 0) (-90) (Camera 45 (Vector 0 0 (-1)) (Vector 0 0 3))
 
@@ -60,12 +65,12 @@ main =
 
 trace :: Scene -> Int -> Int -> Color
 trace (Scene objects lights camera config) x y =
-    let
-      bgColor = defaultColor config
-      ray =  Ray.generate camera (sceneWidth config) (sceneHeight config) x y
-      intersectedObject = closestObject ray objects
-    in
-      maybe bgColor (getIntersectionColor ray lights objects) intersectedObject
+  let
+    bgColor = defaultColor config
+    ray =  Ray.generate camera (sceneWidth config) (sceneHeight config) x y
+    intersectedObject = closestObject ray objects
+  in
+    maybe bgColor (getIntersectionColor ray lights objects) intersectedObject
 
 closestObject :: Ray -> [Object] -> Maybe (Double, Object)
 closestObject ray objects =
@@ -81,42 +86,45 @@ closestObject ray objects =
     intersectLambda obj@(Object s _) = fmap (\i -> (i, obj)) (rayIntersection ray s)
     minimumDefinedByFirst :: (Double, Object) -> (Double,Object) -> Ordering
     minimumDefinedByFirst  x y
-        | fst x < fst y = LT
-        | fst x > fst y = GT
-        | otherwise = EQ
+      | fst x < fst y = LT
+      | fst x > fst y = GT
+      | otherwise = EQ
 
 getIntersectionColor :: Ray -> [Light] -> [Object] -> (Double, Object) -> Color
 getIntersectionColor ray lights objects (hitDistance, hitObject) =
-    let
-        hitPoint = Ray.pointAlongRay ray hitDistance
-        otherObjects = filter (/= hitObject) objects
-        visibleLights = filter (isLightVisible otherObjects hitPoint) lights
-    in
-        lambertColor hitPoint hitObject visibleLights
+  let
+    hitPoint = Ray.pointAlongRay ray hitDistance
+    otherObjects = filter (/= hitObject) objects
+    visibleLights = filter (isLightVisible otherObjects hitPoint) lights
+  in
+    lambertColor hitPoint hitObject visibleLights
 
 isLightVisible :: [Object] -> Vector -> Light -> Bool
 isLightVisible objects point light =
-    let
-        toLightVector = center light `sub` point
-        distanceToLight = magnitude toLightVector
-        direction = normalize toLightVector
-        ray = Ray point direction
-        shapes = map (\(Object shape _) -> shape) objects
-        objIntersections = mapMaybe (rayIntersection ray) shapes
-    in
-        all (>= distanceToLight) objIntersections
+ let
+   toLightVector = center light `sub` point
+    distanceToLight = magnitude toLightVector
+    direction = normalize toLightVector
+    ray = Ray point direction
+    shapes = map (\(Object shape _) -> shape) objects
+    objIntersections = mapMaybe (rayIntersection ray) shapes
+  in
+    all (>= distanceToLight) objIntersections
 
 -- Should also include light color
 lambertColor :: Vector -> Object -> [Light] -> Color
 lambertColor hitPoint (Object shape (Material color)) lights =
-    let
-        normal = normalAtPoint hitPoint shape
-        lightLamberts = fmap (\l -> (lambertIntensity hitPoint normal l, l)) lights
-        lIntensity = sum $ fmap fst lightLamberts
-    in lIntensity `scalarMult` color
+  let
+    normal = normalAtPoint hitPoint shape
+    lightLamberts = fmap (\l -> (lambertIntensity hitPoint normal l, l)) lights
+    lIntensity = sum $ fmap fst lightLamberts
+  in
+    lIntensity `scalarMult` color
 
 lambertIntensity :: Vector -> Vector -> Light -> Double
 lambertIntensity point normal (PointLight center intensity) =
-    let lightDirection = normalize $ center `sub` point
-    in intensity * max 0 (normal `dot` lightDirection)
+  let
+    lightDirection = normalize $ center `sub` point
+  in
+    intensity * max 0 (normal `dot` lightDirection)
 

@@ -9,4 +9,4 @@ roots a b c
     | descriminant == 0 = [0.5 * (-b)]
     | descriminant > 0 = [0.5 * (-b + sqrt descriminant), 0.5 * (-b - sqrt descriminant)]
     | otherwise = []
-    where descriminant = b * b - 4 * a * c
+  where descriminant = b * b - 4 * a * c
