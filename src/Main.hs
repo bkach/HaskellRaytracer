@@ -18,6 +18,7 @@ import DataTypes
 import Shapes
 import qualified Ray
 import Ray ( Ray(..) )
+import Intersection
 import Vector
 import Quaternion
 import Color
@@ -72,26 +73,23 @@ trace (Scene objects lights camera config) x y =
   in
     maybe bgColor (getIntersectionColor ray lights objects) intersectedObject
 
-closestObject :: Ray -> [Object] -> Maybe (Double, Object)
+closestObject :: Ray -> [Object] -> Maybe Intersection
 closestObject ray objects =
   let
-    intersections = mapMaybe intersectLambda objects
+    intersections = mapMaybe (objectIntersection ray) objects
   in
     if null intersections then
       Nothing
     else
-      Just $ minimumBy minimumDefinedByFirst intersections
-  where
-    intersectLambda :: Object -> Maybe (Double, Object)
-    intersectLambda obj@(Object s _) = fmap (\i -> (i, obj)) (rayIntersection ray s)
-    minimumDefinedByFirst :: (Double, Object) -> (Double,Object) -> Ordering
-    minimumDefinedByFirst  x y
-      | fst x < fst y = LT
-      | fst x > fst y = GT
-      | otherwise = EQ
+      Just $ minimum intersections
 
-getIntersectionColor :: Ray -> [Light] -> [Object] -> (Double, Object) -> Color
-getIntersectionColor ray lights objects (hitDistance, hitObject) =
+objectIntersection :: Ray -> Object -> Maybe Intersection
+objectIntersection ray obj@(Object s _) =
+  (Intersection obj) <$> rayIntersection ray s
+
+
+getIntersectionColor :: Ray -> [Light] -> [Object] -> Intersection -> Color
+getIntersectionColor ray lights objects (Intersection hitObject hitDistance) =
   let
     hitPoint = Ray.pointAlongRay ray hitDistance
     otherObjects = filter (/= hitObject) objects
