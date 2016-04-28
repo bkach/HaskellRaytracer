@@ -1,13 +1,18 @@
 module Intersection where
 
+import Data.Ord
+
 import DataTypes
 
-type Intersection = (Double, Object)
+data Intersection = Intersection {
+  distance :: Double,
+  intersectedObject :: Object
+} deriving Eq
 
-closest :: Intersection -> Intersection -> Ordering
-closest x y
-  | fst x < fst y = LT
-  | fst x > fst y = GT
-  | otherwise = EQ
-
+instance Ord Intersection where
+  compare x y
+    | distance x < distance y = LT
+    | distance x > distance y = GT
+    | otherwise = EQ
+  x <= y = distance x <= distance y
 
