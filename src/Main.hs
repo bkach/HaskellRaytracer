@@ -116,15 +116,24 @@ lambertColor :: Vector -> Object -> [Light] -> Color
 lambertColor hitPoint (Object shape (Material color)) lights =
   let
     normal = normalAtPoint hitPoint shape
-    lightLamberts = fmap (\l -> (lambertIntensity hitPoint normal l, l)) lights
-    lIntensity = sum $ fmap fst lightLamberts
+    lightIlluminations = fmap (lambertIllumination hitPoint normal) lights
+    totalIllumination = sum lightIlluminations
   in
-    lIntensity `scalarMult` color
+    totalIllumination `scalarMult` color
 
-lambertIntensity :: Vector -> Vector -> Light -> Double
-lambertIntensity point normal (PointLight center intensity) =
+lambertIllumination :: Vector -> Vector -> Light -> Double
+lambertIllumination hitPoint normal light =
   let
-    lightDirection = normalize $ center `sub` point
+    lv = lambertValue hitPoint normal light
+    illumination = lv * (intensity light)
   in
-    intensity * max 0 (normal `dot` lightDirection)
+    -- When lights have colors, they'll be multiplied here
+    illumination
+
+lambertValue :: Vector -> Vector -> Light -> Double
+lambertValue point normal light =
+  let
+    lightDirection = normalize $ (center light) `sub` point
+  in
+    max 0 (normal `dot` lightDirection)
 
