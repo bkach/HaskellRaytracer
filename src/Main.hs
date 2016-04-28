@@ -85,11 +85,11 @@ closestObject ray objects =
 
 objectIntersection :: Ray -> Object -> Maybe Intersection
 objectIntersection ray obj@(Object s _) =
-  fmap (\d -> Intersection d obj) $ rayIntersection ray s
+  (Intersection obj) <$> rayIntersection ray s
 
 
 getIntersectionColor :: Ray -> [Light] -> [Object] -> Intersection -> Color
-getIntersectionColor ray lights objects (Intersection hitDistance hitObject) =
+getIntersectionColor ray lights objects (Intersection hitObject hitDistance) =
   let
     hitPoint = Ray.pointAlongRay ray hitDistance
     otherObjects = filter (/= hitObject) objects

@@ -5,8 +5,8 @@ import Data.Ord
 import DataTypes
 
 data Intersection = Intersection {
-  distance :: Double,
-  intersectedObject :: Object
+  intersectedObject :: Object,
+  distance :: Double
 } deriving Eq
 
 instance Ord Intersection where
