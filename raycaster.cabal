@@ -51,4 +51,5 @@ test-suite tests
                        Shapes,
                        Transformations,
                        Utils,
-                       Vector
+                       Vector,
+                       Tests.Shapes
