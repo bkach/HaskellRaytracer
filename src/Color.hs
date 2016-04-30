@@ -1,28 +1,36 @@
 module Color where
 
-import Data.Word (Word8)
-import Vector
 import Codec.Picture (PixelRGB8(..))
 
-type Color = Vector
+data Color = Color Double Double Double deriving (Eq, Show)
 
 pixelRGB8 :: Color -> PixelRGB8
-pixelRGB8 (Vector r g b)  = PixelRGB8 (truncate r) (truncate g) (truncate b)
+pixelRGB8 (Color r g b)  = PixelRGB8 (truncate (r * 255)) (truncate (g * 255)) (truncate (b * 255))
 
 red :: Color
-red = Vector 255 0 0
+red = Color 1 0 0
 
 green :: Color
-green = Vector 0 255 0
+green = Color 0 1 0
 
 blue :: Color
-blue = Vector 0 0 255
+blue = Color 0 0 1
 
 white :: Color
-white = Vector 255 255 255
+white = Color 1 1 1
 
 black :: Color
-black = Vector 0 0 0
+black = Color 0 0 0
 
 pink :: Color
-pink = Vector 240 128 128
+pink = Color 1 0.5 0.5
+
+colorMult :: Double -> Color -> Color
+colorMult v (Color r g b) = Color (r * v) (g * v) (b * v)
+
+colorSurfaceInteraction :: Color -> Color -> Color
+colorSurfaceInteraction (Color surfR surfG surfB) (Color lightR lightG lightB) =
+  (Color (surfR * lightR / 255) (surfG * lightG / 255) (surfB * lightB / 255))
+
+
+

@@ -117,7 +117,7 @@ lambertColor hitPoint (Object shape (Material color)) lights =
     lightIlluminations = fmap (lambertIllumination hitPoint normal) lights
     totalIllumination = sum lightIlluminations
   in
-    totalIllumination `scalarMult` color
+    totalIllumination `colorMult` color
 
 lambertIllumination :: Vector -> Vector -> Light -> Double
 lambertIllumination hitPoint normal light =
