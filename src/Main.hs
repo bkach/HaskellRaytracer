@@ -60,18 +60,29 @@ main =
 
     scene = Scene objects lights camera config
 
-    img = generateImage (\x y -> pixelRGB8 $ Main.trace scene (sceneWidth config - x) (sceneHeight config - y)) (sceneWidth config) (sceneHeight config)
+    width = sceneWidth config
+    height = sceneHeight config
+    img = generateImage (\x y -> pixelRGB8 $ getCoordColor scene x (height - y)) width height
    in
     writePng "output.png" img
 
-trace :: Scene -> Int -> Int -> Color
-trace (Scene objects lights camera config) x y =
+getCoordColor :: Scene -> Int -> Int -> Color
+getCoordColor scene@(Scene _ _ camera config) x y =
+  let
+    ray =  Ray.generate camera (sceneWidth config) (sceneHeight config) x y
+  in
+    traceRay scene ray
+
+traceRay :: Scene -> Ray -> Color
+traceRay scene ray = traceRayReflect scene ray 0
+
+traceRayReflect :: Scene -> Ray -> Int -> Color
+traceRayReflect scene@(Scene objects _ _ config) ray reflections =
   let
     bgColor = defaultColor config
-    ray =  Ray.generate camera (sceneWidth config) (sceneHeight config) x y
     intersectedObject = closestObject ray objects
   in
-    maybe bgColor (getIntersectionColor ray lights objects) intersectedObject
+    maybe bgColor (getIntersectionColor ray scene reflections) intersectedObject
 
 closestObject :: Ray -> [Object] -> Maybe Intersection
 closestObject ray objects =
@@ -88,14 +99,27 @@ objectIntersection ray obj@(Object s _) =
   (Intersection obj) <$> rayIntersection ray s
 
 
-getIntersectionColor :: Ray -> [Light] -> [Object] -> Intersection -> Color
-getIntersectionColor ray lights objects (Intersection hitObject hitDistance) =
+getIntersectionColor :: Ray -> Scene -> Int -> Intersection -> Color
+getIntersectionColor ray scene@(Scene objects lights _ _) reflections (Intersection hitObject hitDistance) =
   let
     hitPoint = Ray.pointAlongRay ray hitDistance
     otherObjects = filter (/= hitObject) objects
     visibleLights = filter (isLightVisible otherObjects hitPoint) lights
+    lambertVal = lambertColor hitPoint hitObject visibleLights
+    reflectionLight = reflectionColor scene ray hitPoint hitObject reflections
   in
-    lambertColor hitPoint hitObject visibleLights
+    lambertVal `colorAdd` (0.5 `colorMult` reflectionLight)
+
+reflectionColor :: Scene -> Ray -> Vector -> Object -> Int -> Color
+reflectionColor scene (Ray origin direction) hitPoint (Object shape _) reflections = 
+  let
+    maxReflections = 5
+    reflectionDirection = Vector.reflect (normalAtPoint hitPoint shape) direction
+    reflectionRay = Ray hitPoint reflectionDirection
+  in
+    if reflections == maxReflections
+    then Color 0 0 0
+    else traceRayReflect scene reflectionRay (reflections + 1)
 
 isLightVisible :: [Object] -> Vector -> Light -> Bool
 isLightVisible objects point light =
