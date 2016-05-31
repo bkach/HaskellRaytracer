@@ -56,7 +56,7 @@ main =
 
     camera = rotateCamera (Vector 0 0 3) (Vector 0 1 0) (-90) (Camera 45 (Vector 0 0 (-1)) (Vector 0 0 3))
 
-    config = Config 500 500 Color.white
+    config = Config 500 500 Color.black
 
     scene = Scene objects lights camera config
 
