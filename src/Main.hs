@@ -95,9 +95,7 @@ closestObject ray objects =
       Just $ minimum intersections
 
 objectIntersection :: Ray -> Object -> Maybe Intersection
-objectIntersection ray obj@(Object s _) =
-  (Intersection obj) <$> rayIntersection ray s
-
+objectIntersection ray obj@(Object s _) = Intersection obj <$> rayIntersection ray s
 
 getIntersectionColor :: Ray -> Scene -> Int -> Intersection -> Color
 getIntersectionColor ray scene@(Scene objects lights _ _) reflections (Intersection hitObject hitDistance) =
@@ -147,7 +145,7 @@ lambertIllumination :: Vector -> Vector -> Light -> Double
 lambertIllumination hitPoint normal light =
   let
     lv = lambertValue hitPoint normal light
-    illumination = lv * (intensity light)
+    illumination = lv * intensity light
   in
     -- When lights have colors, they'll be multiplied here
     illumination
@@ -155,7 +153,7 @@ lambertIllumination hitPoint normal light =
 lambertValue :: Vector -> Vector -> Light -> Double
 lambertValue point normal light =
   let
-    lightDirection = normalize $ (center light) `sub` point
+    lightDirection = normalize $ center light `sub` point
   in
     max 0 (normal `dot` lightDirection)
 
