@@ -32,5 +32,7 @@ colorSurfaceInteraction :: Color -> Color -> Color
 colorSurfaceInteraction (Color surfR surfG surfB) (Color lightR lightG lightB) =
   (Color (surfR * lightR / 255) (surfG * lightG / 255) (surfB * lightB / 255))
 
+colorAdd :: Color -> Color -> Color
+colorAdd (Color r1 g1 b1) (Color r2 g2 b2) = Color (r1 + r2) (g1 + g2) (b1 + b2)
 
 
