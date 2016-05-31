@@ -33,3 +33,10 @@ magnitude (Vector x y z) = sqrt (x * x + y * y + z * z)
 
 neg :: Vector -> Vector
 neg = scalarMult (-1)
+
+reflect :: Vector -> Vector -> Vector
+reflect normal direction =
+  let
+    scaledNormal = (2 * (direction `dot` normal)) `scalarMult` normal
+  in
+    direction `sub` scaledNormal
