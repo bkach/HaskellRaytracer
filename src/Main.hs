@@ -111,7 +111,7 @@ getIntersectionColor ray scene@(Scene objects lights _ _) reflections (Intersect
 reflectionColor :: Scene -> Ray -> Vector -> Object -> Int -> Color
 reflectionColor scene (Ray origin direction) hitPoint (Object shape _) reflections = 
   let
-    maxReflections = 5
+    maxReflections = 2
     reflectionDirection = Vector.reflect (normalAtPoint hitPoint shape) direction
     reflectionRay = Ray hitPoint reflectionDirection
   in
