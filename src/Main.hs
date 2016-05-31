@@ -106,7 +106,7 @@ getIntersectionColor ray scene@(Scene objects lights _ _) reflections (Intersect
     lambertVal = lambertColor hitPoint hitObject visibleLights
     reflectionLight = reflectionColor scene ray hitPoint hitObject reflections
   in
-    lambertVal `colorAdd` (0.5 `colorMult` reflectionLight)
+    lambertVal `colorAdd` (0.2 `colorMult` reflectionLight)
 
 reflectionColor :: Scene -> Ray -> Vector -> Object -> Int -> Color
 reflectionColor scene (Ray origin direction) hitPoint (Object shape _) reflections = 
