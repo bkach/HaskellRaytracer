@@ -1,6 +1,11 @@
-module Vector where
+module RayCaster.Vector where
 
-data Vector = Vector {x :: Double, y :: Double, z :: Double} deriving(Eq, Show)
+data Vector = Vector
+  { x :: Double
+  , y :: Double
+  , z :: Double
+  } deriving (Eq, Show)
+
 type Point = Vector
 
 -- Helper Functions
@@ -23,10 +28,8 @@ cross :: Vector -> Vector -> Vector
 
 normalize :: Vector -> Vector
 normalize (Vector x y z) =
-  let
-    m = magnitude (Vector x y z)
-  in
-    Vector (x / m) (y / m) (z / m)
+  let m = magnitude (Vector x y z)
+  in Vector (x / m) (y / m) (z / m)
 
 magnitude :: Vector -> Double
 magnitude (Vector x y z) = sqrt (x * x + y * y + z * z)
@@ -36,7 +39,5 @@ neg = scalarMult (-1)
 
 reflect :: Vector -> Vector -> Vector
 reflect normal direction =
-  let
-    scaledNormal = (2 * (direction `dot` normal)) `scalarMult` normal
-  in
-    direction `sub` scaledNormal
+  let scaledNormal = (2 * (direction `dot` normal)) `scalarMult` normal
+  in direction `sub` scaledNormal

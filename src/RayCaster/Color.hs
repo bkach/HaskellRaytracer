@@ -1,4 +1,4 @@
-module Color where
+module RayCaster.Color where
 
 import Codec.Picture (PixelRGB8(..))
 

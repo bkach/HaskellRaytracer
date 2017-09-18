@@ -1,9 +1,9 @@
 module Tests.Util where
 
-import Test.QuickCheck (Arbitrary, arbitrary)
+import           Test.QuickCheck  (Arbitrary, arbitrary)
 
-import Vector
-import Camera
+import           RayCaster.Camera
+import           RayCaster.Vector
 
 instance Arbitrary Vector where
   arbitrary = do
@@ -14,8 +14,7 @@ instance Arbitrary Vector where
 
 instance Arbitrary Camera where
   arbitrary = do
-    fov  <- arbitrary
-    pos  <- arbitrary
+    fov <- arbitrary
+    pos <- arbitrary
     look <- arbitrary
     return $ Camera fov pos look
-

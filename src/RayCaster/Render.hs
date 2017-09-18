@@ -1,16 +1,17 @@
-module Render where
+module RayCaster.Render where
 
-import           Color        (Color (..), colorAdd, colorMult)
-import           Data.Maybe   (Maybe, mapMaybe)
-import           DataTypes    (Config (..), Light (..), Material (..),
-                               Object (..), Scene (..))
-import           Intersection (Intersection (..))
-import           Ray          (Ray (..))
-import qualified Ray
-import           Shapes       (Shape)
-import qualified Shapes
-import           Vector       (Vector)
-import qualified Vector
+import           Data.Maybe             (Maybe, mapMaybe)
+
+import           RayCaster.Color        (Color (..), colorAdd, colorMult)
+import           RayCaster.DataTypes    (Config (..), Light (..), Material (..),
+                                         Object (..), Scene (..))
+import           RayCaster.Intersection (Intersection (..))
+import           RayCaster.Ray          (Ray (..))
+import qualified RayCaster.Ray          as Ray
+import           RayCaster.Shapes       (Shape)
+import qualified RayCaster.Shapes       as Shapes
+import           RayCaster.Vector       (Vector)
+import qualified RayCaster.Vector       as Vector
 
 getCoordColor :: Scene -> Int -> Int -> Color
 getCoordColor scene@(Scene _ _ camera config) x y =

@@ -1,8 +1,8 @@
-module Shapes where
+module RayCaster.Shapes where
 
-import Vector
-import Ray
-import Utils (roots)
+import RayCaster.Vector
+import RayCaster.Ray
+import RayCaster.Utils (roots)
 
 data Shape = Sphere Vector Double  -- center, radius
            | Plane Vector Vector  deriving(Eq) -- center, normal
