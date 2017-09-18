@@ -19,7 +19,7 @@ import           Codec.Picture.Png
 
 import RayCaster (Camera(..), Config(..), Light(..),
                   Material(..), Object(..), Scene(..), Shape(..), Vector(..))
-import           RayCaster.Color             (pixelRGB8)
+import           RayCaster.Color             (Color(..))
 import qualified RayCaster.Color as Color
 import           RayCaster.Render            (getCoordColor)
 import           RayCaster.Transformations   (rotateCamera)
@@ -50,3 +50,6 @@ main =
           width
           height
   in writePng "output.png" img
+
+pixelRGB8 :: Color -> PixelRGB8
+pixelRGB8 (Color r g b)  = PixelRGB8 (truncate (r * 255)) (truncate (g * 255)) (truncate (b * 255))
