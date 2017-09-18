@@ -14,17 +14,15 @@
 --
 module Main where
 
-import           Camera            (Camera (..))
 import           Codec.Picture
 import           Codec.Picture.Png
-import           Color             (pixelRGB8)
-import qualified Color
-import           DataTypes         (Config (..), Light (..), Material (..),
-                                    Object (..), Scene (..))
-import           Render            (getCoordColor)
-import           Shapes            (Shape (..))
-import           Transformations   (rotateCamera)
-import           Vector            (Vector (..))
+
+import RayCaster (Camera(..), Config(..), Light(..),
+                  Material(..), Object(..), Scene(..), Shape(..), Vector(..))
+import           RayCaster.Color             (pixelRGB8)
+import qualified RayCaster.Color as Color
+import           RayCaster.Render            (getCoordColor)
+import           RayCaster.Transformations   (rotateCamera)
 
 main :: IO ()
 main =
@@ -41,12 +39,7 @@ main =
         , PointLight (Vector 0.5 0.5 0) 0.4
         , PointLight (Vector 9 0 4) 0.2
         ]
-      camera =
-        rotateCamera
-          (Vector 0 0 3)
-          (Vector 0 1 0)
-          (-90)
-          (Camera 45 (Vector 0 0 (-1)) (Vector 0 0 3))
+      camera = (Camera 45 (Vector 0 0 (-1)) (Vector 0 0 3))
       config = Config 500 500 Color.black
       scene = Scene objects lights camera config
       width = sceneWidth config

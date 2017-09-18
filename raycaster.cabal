@@ -16,16 +16,18 @@ source-repository head
 
 library
   hs-source-dirs:      src
-  exposed-modules:       Camera
-                     , Color
-                     , DataTypes
-                     , Intersection
-                     , Quaternion
-                     , Ray
-                     , Shapes
-                     , Transformations
-                     , Utils
-                     , Vector
+  exposed-modules:     RayCaster
+                     , RayCaster.Camera
+                     , RayCaster.Color
+                     , RayCaster.DataTypes
+                     , RayCaster.Intersection
+                     , RayCaster.Quaternion
+                     , RayCaster.Ray
+                     , RayCaster.Render
+                     , RayCaster.Shapes
+                     , RayCaster.Transformations
+                     , RayCaster.Utils
+                     , RayCaster.Vector
   build-depends:       base >=4.8 && <5
                      , JuicyPixels
   default-language:    Haskell2010

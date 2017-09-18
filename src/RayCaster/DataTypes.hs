@@ -1,10 +1,10 @@
-module DataTypes where
+module RayCaster.DataTypes where
 
-import Vector
-import Camera
-import Color
-import Shapes
-import Ray
+import RayCaster.Vector
+import RayCaster.Camera
+import RayCaster.Color
+import RayCaster.Shapes
+import RayCaster.Ray
 
 -- Basic Data Types
 data Object = Object Shape Material deriving(Eq)
