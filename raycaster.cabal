@@ -14,45 +14,44 @@ source-repository head
   type:     git
   location: https://github.com/bkach/HaskellRaycaster
 
-executable raycaster
-  main-is:             Main.hs
-  build-depends:       base >=4.8 && <5,
-                       JuicyPixels
+library
   hs-source-dirs:      src
+  exposed-modules:       Camera
+                     , Color
+                     , DataTypes
+                     , Intersection
+                     , Quaternion
+                     , Ray
+                     , Shapes
+                     , Transformations
+                     , Utils
+                     , Vector
+  build-depends:       base >=4.8 && <5
+                     , JuicyPixels
   default-language:    Haskell2010
-  other-modules:       Camera,
-                       Color,
-                       DataTypes,
-                       Intersection,
-                       Quaternion,
-                       Ray,
-                       Shapes,
-                       Transformations,
-                       Utils,
-                       Vector
+
+executable raycaster-exe
+  hs-source-dirs:      app
+  main-is:             Main.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       base >=4.8 && <5
+                     , JuicyPixels
+                     , raycaster
+  default-language:    Haskell2010
 
 test-suite tests
-  default-language:    Haskell2010
   type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
   main-is:             Tests.hs
-  hs-source-dirs:      test,
-                       src
-  build-depends:       base,
-                       HUnit,
-                       QuickCheck,
-                       test-framework,
-                       test-framework-hunit,
-                       test-framework-quickcheck2
-  other-modules:       Camera,
-                       Color,
-                       DataTypes,
-                       Intersection,
-                       Quaternion,
-                       Ray,
-                       Shapes,
-                       Transformations,
-                       Utils,
-                       Vector,
-                       Tests.Util,
-                       Tests.Shapes,
-                       Tests.Vector
+  build-depends:       base
+                     , raycaster
+                     , HUnit
+                     , QuickCheck
+                     , test-framework
+                     , test-framework-hunit
+                     , test-framework-quickcheck2
+  other-modules:       Tests.Util
+                     , Tests.Shapes
+                     , Tests.Vector
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
