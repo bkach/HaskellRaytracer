@@ -1,11 +1,6 @@
 module RayCaster.Color where
 
-import Codec.Picture (PixelRGB8(..))
-
 data Color = Color Double Double Double deriving (Eq, Show)
-
-pixelRGB8 :: Color -> PixelRGB8
-pixelRGB8 (Color r g b)  = PixelRGB8 (truncate (r * 255)) (truncate (g * 255)) (truncate (b * 255))
 
 red :: Color
 red = Color 1 0 0
