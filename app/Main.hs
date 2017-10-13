@@ -14,37 +14,14 @@
 --
 module Main where
 
-import qualified Data.ByteString.Lazy as BS
 import           Codec.Picture
 import           Codec.Picture.Png
+import qualified Data.ByteString.Lazy   as BS
 
-import RayCaster (Camera(..), Config(..), Light(..),
-                  Material(..), Object(..), Scene(..), Shape(..), Vector(..))
-import           RayCaster.Color             (Color(..))
-import qualified RayCaster.Color as Color
-import           RayCaster.Render            (getCoordColor)
-import           RayCaster.Transformations   (rotateCamera)
-import RayCaster.JsonSceneDef (readJsonScene)
-
-expectedScene :: Scene
-expectedScene =
-  let objects =
-        [ Object (Sphere (Vector (-0.5) 0 2) 0.5) (Material Color.red)
-        , Object (Sphere (Vector 0 0 3) 0.5) (Material Color.blue)
-        , Object
-            (Plane (Vector 0 (-0.5) 0) (Vector 0 1 0))
-            (Material Color.pink)
-        , Object (Plane (Vector 0 0 5) (Vector 0 0 (-1))) (Material Color.pink)
-        ]
-      lights =
-        [ PointLight (Vector 0 0.5 0) 0.4
-        , PointLight (Vector 0.5 0.5 0) 0.4
-        , PointLight (Vector 9 0 4) 0.2
-        ]
-      camera = (Camera 45 (Vector 0 0 (-1)) (Vector 0 0 3))
-      config = Config 500 500 Color.black
-    in
-      Scene objects lights camera config
+import           RayCaster              (Config (..), Scene (..))
+import           RayCaster.Color        (Color (..))
+import           RayCaster.JsonSceneDef (readJsonScene)
+import           RayCaster.Render       (getCoordColor)
 
 main :: IO ()
 main = do
@@ -54,8 +31,7 @@ main = do
 
 render :: String -> Scene -> IO ()
 render filename scene@(Scene _ _ _ config) =
-  let
-      width = sceneWidth config
+  let width = sceneWidth config
       height = sceneHeight config
       img =
         generateImage
@@ -65,4 +41,5 @@ render filename scene@(Scene _ _ _ config) =
   in writePng filename img
 
 pixelRGB8 :: Color -> PixelRGB8
-pixelRGB8 (Color r g b)  = PixelRGB8 (truncate (r * 255)) (truncate (g * 255)) (truncate (b * 255))
+pixelRGB8 (Color r g b) =
+  PixelRGB8 (truncate (r * 255)) (truncate (g * 255)) (truncate (b * 255))
