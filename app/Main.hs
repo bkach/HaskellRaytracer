@@ -14,6 +14,7 @@
 --
 module Main where
 
+import qualified Data.ByteString.Lazy as BS
 import           Codec.Picture
 import           Codec.Picture.Png
 
@@ -23,9 +24,10 @@ import           RayCaster.Color             (Color(..))
 import qualified RayCaster.Color as Color
 import           RayCaster.Render            (getCoordColor)
 import           RayCaster.Transformations   (rotateCamera)
+import RayCaster.JsonSceneDef (readJsonScene)
 
-main :: IO ()
-main =
+expectedScene :: Scene
+expectedScene =
   let objects =
         [ Object (Sphere (Vector (-0.5) 0 2) 0.5) (Material Color.red)
         , Object (Sphere (Vector 0 0 3) 0.5) (Material Color.blue)
@@ -41,7 +43,18 @@ main =
         ]
       camera = (Camera 45 (Vector 0 0 (-1)) (Vector 0 0 3))
       config = Config 500 500 Color.black
-      scene = Scene objects lights camera config
+    in
+      Scene objects lights camera config
+
+main :: IO ()
+main = do
+  jsonScene <- BS.readFile "./scenes/basic.json"
+  let maybeScene = readJsonScene jsonScene
+  maybe (print "Scene could not be parsed") (render "output.png") maybeScene
+
+render :: String -> Scene -> IO ()
+render filename scene@(Scene _ _ _ config) =
+  let
       width = sceneWidth config
       height = sceneHeight config
       img =
@@ -49,7 +62,7 @@ main =
           (\x y -> pixelRGB8 $ getCoordColor scene x (height - y))
           width
           height
-  in writePng "output.png" img
+  in writePng filename img
 
 pixelRGB8 :: Color -> PixelRGB8
 pixelRGB8 (Color r g b)  = PixelRGB8 (truncate (r * 255)) (truncate (g * 255)) (truncate (b * 255))

@@ -21,6 +21,7 @@ library
                      , RayCaster.Color
                      , RayCaster.DataTypes
                      , RayCaster.Intersection
+                     , RayCaster.JsonSceneDef
                      , RayCaster.Quaternion
                      , RayCaster.Ray
                      , RayCaster.Render
@@ -29,6 +30,9 @@ library
                      , RayCaster.Utils
                      , RayCaster.Vector
   build-depends:       base >=4.8 && <5
+                     , aeson
+                     , containers
+                     , bytestring
   default-language:    Haskell2010
 
 executable raycaster-exe
@@ -38,6 +42,7 @@ executable raycaster-exe
   build-depends:       base >=4.8 && <5
                      , JuicyPixels
                      , raycaster
+                     , bytestring
   default-language:    Haskell2010
 
 test-suite tests
