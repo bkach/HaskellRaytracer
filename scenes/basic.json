@@ -1,0 +1,130 @@
+{
+	"config": {
+		"width": 500,
+		"height": 500,
+		"defaultColor": {
+			"red": 0,
+			"green": 0,
+			"blue": 0
+		}
+	},
+	"camera": {
+		"fov": 45,
+		"cameraPosition": {
+			"x": 0,
+			"y": 0,
+			"z": -1
+		},
+		"lookingAt": {
+			"x": 0,
+			"y": 0,
+			"z": 3
+		}
+	},
+	"lights": [{
+			"center": {
+				"x": 0,
+				"y": 0.5,
+				"z": 0
+			},
+			"intensity": 0.4
+		},
+		{
+			"center": {
+				"x": 0.5,
+				"y": 0.5,
+				"z": 0
+			},
+			"intensity": 0.4
+		},
+		{
+			"center": {
+				"x": 9,
+				"y": 0,
+				"z": 4
+			},
+			"intensity": 0.2
+		}
+	],
+	"objects": [{
+			"shape": {
+				"type": "sphere",
+				"center": {
+					"x": -0.5,
+					"y": 0,
+					"z": 2
+				},
+				"radius": 0.5
+			},
+			"material": {
+				"color": {
+					"red": 1,
+					"green": 0,
+					"blue": 0
+				}
+			}
+		},
+		{
+			"shape": {
+				"type": "sphere",
+				"center": {
+					"x": 0,
+					"y": 0,
+					"z": 3
+				},
+				"radius": 0.5
+			},
+			"material": {
+				"color": {
+					"red": 0,
+					"green": 0,
+					"blue": 1
+				}
+			}
+		},
+		{
+			"shape": {
+				"type": "plane",
+				"center": {
+					"x": 0,
+					"y": -0.5,
+					"z": 3
+				},
+				"normal": {
+					"x": 0,
+					"y": 1,
+					"z": 0
+				}
+			},
+			"material": {
+				"color": {
+					"red": 1,
+					"green": 0.5,
+					"blue": 0.5
+				}
+			}
+		},
+		{
+			"shape": {
+				"type": "plane",
+				"center": {
+					"x": 0,
+					"y": 0,
+					"z": 5
+				},
+				"normal": {
+					"x": 0,
+					"y": 0,
+					"z": -1
+				}
+			},
+			"material": {
+				"color": {
+					"red": 1,
+					"green": 0.5,
+					"blue": 0.5
+				}
+			}
+		}
+	]
+}
