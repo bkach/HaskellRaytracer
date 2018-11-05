@@ -1,6 +1,6 @@
-# Haskell Raycaster
+# Haskell Raytracer
 
-A simple raycaster written in Haskell
+A simple raytracer written in Haskell
 
 Below is an example input with two spheres, two planes, and three point lights.
 
